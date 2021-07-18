@@ -23,11 +23,11 @@ public class SqliteHandler implements DBHandler{
     private final CraftEcoConfig.DatabaseConfig dbConfig;
 
     public SqliteHandler(final Path configDir) throws IOException {
-        final Path dbPath = configDir.resolve("data.db");
+        dbConfig = ConfigLoader.instance.getConfig().database;
+        final Path dbPath = configDir.resolve(dbConfig.databaseName + ".db");
         if (!Files.exists(dbPath)){
             Files.createFile(dbPath);
         }
-        dbConfig = ConfigLoader.instance.getConfig().database;
         dataSource = new DataSource("jdbc:sqlite:" + dbPath.toAbsolutePath(), dbConfig.username, dbConfig.passwd);
         this.createDB();
         this.createTable();
