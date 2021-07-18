@@ -17,6 +17,7 @@ public class DataSource {
         hikariConfig.setPassword(passwd);
         hikariConfig.setMaximumPoolSize(10);
         hikariConfig.setMinimumIdle(5);
+        hikariConfig.setDriverClassName("org.sqlite.JDBC");
         this.dataSource = new HikariDataSource(hikariConfig);
     }
 

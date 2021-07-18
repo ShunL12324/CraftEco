@@ -1,5 +1,6 @@
 package com.github.ericliucn.crafteco;
 
+import com.github.ericliucn.crafteco.command.Commands;
 import com.github.ericliucn.crafteco.config.ConfigLoader;
 import com.github.ericliucn.crafteco.config.MessageLoader;
 import com.github.ericliucn.crafteco.eco.CraftEcoService;
@@ -69,7 +70,7 @@ public class Main {
 
     @Listener
     public void onRegisterCommands(final RegisterCommandEvent<Command.Parameterized> event) {
-
+        event.register(this.container, Commands.pay, "pay");
     }
 
     public void printLog(Level level, String content){

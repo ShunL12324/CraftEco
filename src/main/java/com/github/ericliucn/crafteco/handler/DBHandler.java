@@ -2,9 +2,11 @@ package com.github.ericliucn.crafteco.handler;
 
 import org.spongepowered.api.entity.living.player.server.ServerPlayer;
 import org.spongepowered.api.service.economy.Currency;
+import org.spongepowered.api.service.economy.account.UniqueAccount;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 
 public interface DBHandler {
 
@@ -25,6 +27,10 @@ public interface DBHandler {
     void addCurrency(Currency currency, BigDecimal defaultValue);
 
     List<String> getCurrencies();
+
+    void createAccount(ServerPlayer player);
+
+    Optional<UniqueAccount> getUniqueAccount(ServerPlayer player);
 
 
 }

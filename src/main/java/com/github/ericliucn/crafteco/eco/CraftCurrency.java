@@ -1,0 +1,51 @@
+package com.github.ericliucn.crafteco.eco;
+
+import net.kyori.adventure.text.Component;
+import org.spongepowered.api.service.economy.Currency;
+
+import java.math.BigDecimal;
+
+public class CraftCurrency implements Currency {
+
+    private final Component displayName;
+    private final Component pluralDisplayName;
+    private final Component symbol;
+    private final boolean isDefault;
+
+    public CraftCurrency(Component displayName, Component pluralDisplayName, Component symbol, boolean isDefault){
+        this.displayName = displayName;
+        this.pluralDisplayName = pluralDisplayName;
+        this.symbol = symbol;
+        this.isDefault = isDefault;
+    }
+
+    @Override
+    public Component displayName() {
+        return this.displayName;
+    }
+
+    @Override
+    public Component pluralDisplayName() {
+        return this.pluralDisplayName;
+    }
+
+    @Override
+    public Component symbol() {
+        return this.symbol;
+    }
+
+    @Override
+    public Component format(BigDecimal amount, int numFractionDigits) {
+        return this.format(amount);
+    }
+
+    @Override
+    public int defaultFractionDigits() {
+        return 2;
+    }
+
+    @Override
+    public boolean isDefault() {
+        return this.isDefault;
+    }
+}

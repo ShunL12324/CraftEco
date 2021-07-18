@@ -2,6 +2,7 @@ package com.github.ericliucn.crafteco.command;
 
 import com.github.ericliucn.crafteco.Main;
 import com.github.ericliucn.crafteco.config.MessageLoader;
+import com.github.ericliucn.crafteco.eco.CraftCurrency;
 import com.github.ericliucn.crafteco.eco.CraftEcoService;
 import com.github.ericliucn.crafteco.utils.ComponentUtil;
 import org.spongepowered.api.command.Command;
@@ -21,7 +22,8 @@ public class Commands {
 
     static Parameter.Value<User> userPara = Parameter.user().key("target").build();
     static Parameter.Value<BigDecimal> amountPara = Parameter.bigDecimal().key("amount").build();
-    static Parameter.Value<Currency> currencyPara = Parameter.builder(Currency.class).key("currency").build();
+    static Parameter.Value<CraftCurrency> currencyPara =
+            Parameter.builder(CraftCurrency.class).key("currency").addParser(new CraftCurrencyParser()).build();
 
     public static Command.Parameterized pay = Command.builder()
             .permission("crafteco.command.pay")
@@ -32,7 +34,7 @@ public class Commands {
                 ServerPlayer source = ((ServerPlayer) context.cause().root());
                 User target = context.requireOne(userPara);
                 BigDecimal amount = context.requireOne(amountPara);
-                Currency currency = context.one(currencyPara).orElse(service.defaultCurrency());
+                CraftCurrency currency = context.one(currencyPara).orElse((CraftCurrency) service.defaultCurrency());
                 UniqueAccount sourceAccount = service.findOrCreateAccount(source.uniqueId()).get();
                 UniqueAccount targetAccount = service.findOrCreateAccount(target.uniqueId()).get();
                 TransactionResult result = sourceAccount.transfer(targetAccount, currency, amount, context.contextCause());

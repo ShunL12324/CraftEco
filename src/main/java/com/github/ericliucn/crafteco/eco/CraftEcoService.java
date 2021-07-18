@@ -14,6 +14,12 @@ import java.util.stream.Stream;
 
 public class CraftEcoService implements EconomyService {
 
+    public Collection<CraftCurrency> currencies;
+
+    public CraftEcoService(){
+
+    }
+
     @Override
     public Currency defaultCurrency() {
         return null;
@@ -69,4 +75,7 @@ public class CraftEcoService implements EconomyService {
         return null;
     }
 
+    private void setCurrencies(){
+
+    }
 }

@@ -8,9 +8,11 @@ import java.nio.file.Path;
 
 public class DBLoader {
 
-    private DBHandler dbHandler;
+    public static DBLoader instance;
+    private final DBHandler dbHandler;
 
     public DBLoader(final Path configDir) throws IOException {
+        instance = this;
         CraftEcoConfig.DatabaseConfig config = ConfigLoader.instance.getConfig().database;
         switch (config.dbType){
             case "sqlite":

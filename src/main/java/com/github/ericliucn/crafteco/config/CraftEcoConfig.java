@@ -1,16 +1,30 @@
 package com.github.ericliucn.crafteco.config;
 
+import com.github.ericliucn.crafteco.eco.CraftCurrency;
+import net.kyori.adventure.text.Component;
 import org.spongepowered.configurate.objectmapping.ConfigSerializable;
+import org.spongepowered.configurate.objectmapping.meta.Comment;
 import org.spongepowered.configurate.objectmapping.meta.Setting;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @ConfigSerializable
 public class CraftEcoConfig {
 
+    @Comment("Database setting")
     public DatabaseConfig database;
 
     public CraftEcoConfig(){
         database = new DatabaseConfig();
     }
+
+    @Setting(value = "Currencies")
+    @Comment(value = "Add currency here, beware that only one currency be set default currency\n" +
+            "The first currency with \"isDefault = true\" will be the default currency")
+    public List<CraftCurrency> currencies = new ArrayList<CraftCurrency>(){{
+        add(new CraftCurrency(Component.text("dollar"), Component.text("dollars"), Component.text("$"), true));
+    }};
 
     @ConfigSerializable
     public static class DatabaseConfig {

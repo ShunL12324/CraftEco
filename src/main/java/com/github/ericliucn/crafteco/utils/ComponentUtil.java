@@ -11,6 +11,10 @@ public class ComponentUtil {
         return LegacyComponentSerializer.legacyAmpersand().deserialize(str);
     }
 
+    public static String toString(Component component){
+        return LegacyComponentSerializer.legacyAmpersand().serialize(component);
+    }
+
     public static String toPlain(Component component){
         return PlainTextComponentSerializer.plainText().serialize(component);
     }
