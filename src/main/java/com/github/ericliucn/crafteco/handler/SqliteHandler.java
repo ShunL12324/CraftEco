@@ -11,16 +11,14 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
+import java.util.ArrayList;
 import java.util.List;
 
 public class SqliteHandler implements DBHandler{
 
-    private DataSource dataSource;
-    private CraftEcoConfig.DatabaseConfig dbConfig;
+    private final DataSource dataSource;
+    private final CraftEcoConfig.DatabaseConfig dbConfig;
 
     public SqliteHandler(final Path configDir) throws IOException {
         final Path dbPath = configDir.resolve("data.db");
@@ -141,16 +139,19 @@ public class SqliteHandler implements DBHandler{
 
     @Override
     public List<String> getCurrencies() {
-        List<>
+        List<String> list = new ArrayList<>();
         try (
                 Connection connection = dataSource.getConnection();
-                PreparedStatement statement = connection.prepareStatement("ALTER TABLE " + getFullTableName() + " ADD COLUMN ? DECIMAL (18,5) DEFAULT ?")
+                PreparedStatement statement = connection.prepareStatement("SELECT * FROM " + getFullTableName())
         ){
-            statement.setString(1, ComponentUtil.toPlain(currency.displayName()));
-            statement.setBigDecimal(2, BigDecimal.ZERO);
-            statement.execute();
+            ResultSet resultSet = statement.executeQuery();
+            ResultSetMetaData metaData = resultSet.getMetaData();
+            for (int i = 0; i < metaData.getColumnCount(); i++) {
+                list.add(metaData.getColumnName(i + 1));
+            }
         }catch (SQLException e){
             e.printStackTrace();
         }
+        return list;
     }
 }

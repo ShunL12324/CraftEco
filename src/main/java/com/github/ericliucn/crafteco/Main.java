@@ -1,17 +1,23 @@
 package com.github.ericliucn.crafteco;
 
+import com.github.ericliucn.crafteco.config.ConfigLoader;
+import com.github.ericliucn.crafteco.config.MessageLoader;
 import com.github.ericliucn.crafteco.eco.CraftEcoService;
+import com.github.ericliucn.crafteco.handler.DBLoader;
 import com.google.inject.Inject;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.Logger;
 import org.spongepowered.api.Server;
 import org.spongepowered.api.command.Command;
+import org.spongepowered.api.config.ConfigDir;
 import org.spongepowered.api.event.Listener;
 import org.spongepowered.api.event.lifecycle.*;
 import org.spongepowered.api.service.economy.EconomyService;
 import org.spongepowered.plugin.PluginContainer;
 import org.spongepowered.plugin.jvm.Plugin;
 
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.function.Supplier;
 
 /**
@@ -29,6 +35,10 @@ public class Main {
     private CraftEcoService craftEcoService;
 
     @Inject
+    @ConfigDir(sharedRoot = false)
+    private Path configDir;
+
+    @Inject
     Main(final PluginContainer container, final Logger logger) {
         instance = this;
         this.container = container;
@@ -36,13 +46,15 @@ public class Main {
     }
 
     @Listener
-    public void onConstructPlugin(final ConstructPluginEvent event) {
-
+    public void onConstructPlugin(final ConstructPluginEvent event) throws IOException {
+        new ConfigLoader(configDir);
+        new MessageLoader(configDir);
+        new DBLoader(configDir);
+        craftEcoService = new CraftEcoService();
     }
 
     @Listener
-    public void onServerStarting(final StartingEngineEvent<Server> event) {
-        craftEcoService = new CraftEcoService();
+    public void onServerStarting(final StartingEngineEvent<Server> event) throws IOException {
     }
 
     @Listener

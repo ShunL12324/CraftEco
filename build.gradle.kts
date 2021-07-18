@@ -18,6 +18,7 @@ repositories {
 dependencies{
     implementation( "mysql", "mysql-connector-java", "8.0.25")
     implementation("com.zaxxer", "HikariCP", "5.0.0")
+    implementation("org.xerial:sqlite-jdbc:3.36.0.1")
 }
 
 sponge {
