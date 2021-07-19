@@ -11,12 +11,14 @@ public class CraftCurrency implements Currency {
     private final Component pluralDisplayName;
     private final Component symbol;
     private final boolean isDefault;
+    private final BigDecimal defaultValue;
 
-    public CraftCurrency(Component displayName, Component pluralDisplayName, Component symbol, boolean isDefault){
+    public CraftCurrency(Component displayName, Component pluralDisplayName, Component symbol, boolean isDefault, BigDecimal defaultValue){
         this.displayName = displayName;
         this.pluralDisplayName = pluralDisplayName;
         this.symbol = symbol;
         this.isDefault = isDefault;
+        this.defaultValue = defaultValue;
     }
 
     @Override
@@ -47,5 +49,9 @@ public class CraftCurrency implements Currency {
     @Override
     public boolean isDefault() {
         return this.isDefault;
+    }
+
+    public BigDecimal defaultValue(){
+        return this.defaultValue;
     }
 }

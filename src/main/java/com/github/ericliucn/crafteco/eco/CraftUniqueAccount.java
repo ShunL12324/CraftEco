@@ -1,69 +1,102 @@
 package com.github.ericliucn.crafteco.eco;
 
+import com.github.ericliucn.crafteco.Main;
+import com.github.ericliucn.crafteco.handler.DBLoader;
+import com.github.ericliucn.crafteco.utils.ComponentUtil;
 import net.kyori.adventure.text.Component;
+import org.spongepowered.api.data.DataHolder;
+import org.spongepowered.api.data.persistence.DataContainer;
+import org.spongepowered.api.data.persistence.DataView;
+import org.spongepowered.api.entity.living.player.server.ServerPlayer;
 import org.spongepowered.api.event.Cause;
 import org.spongepowered.api.service.context.Context;
 import org.spongepowered.api.service.economy.Currency;
 import org.spongepowered.api.service.economy.account.Account;
 import org.spongepowered.api.service.economy.account.UniqueAccount;
+import org.spongepowered.api.service.economy.transaction.ResultType;
 import org.spongepowered.api.service.economy.transaction.TransactionResult;
+import org.spongepowered.api.service.economy.transaction.TransactionTypes;
 import org.spongepowered.api.service.economy.transaction.TransferResult;
 
 import java.math.BigDecimal;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
-public class CraftUniqueAccount implements UniqueAccount {
+public class CraftUniqueAccount implements UniqueAccount, CraftAccount{
+
+    private Map<Currency, BigDecimal> balance = new HashMap<>();
+    private final UUID userUUID;
+
+    public CraftUniqueAccount(UUID uuid, Map<Currency, BigDecimal> balance){
+        this.userUUID = uuid;
+        this.balance = balance;
+    }
+
+    public CraftUniqueAccount(UUID uuid){
+        this.userUUID = uuid;
+        for (CraftCurrency currency : Main.instance.getCraftEcoService().currencies) {
+            balance.put(currency, currency.defaultValue());
+        }
+    }
 
     @Override
     public Component displayName() {
-        return null;
+        return ComponentUtil.toComponent("&a" + this.identifier());
     }
 
     @Override
     public BigDecimal defaultBalance(Currency currency) {
-        return null;
+        if (currency instanceof CraftCurrency){
+            return ((CraftCurrency) currency).defaultValue();
+        }
+        return BigDecimal.ZERO;
     }
 
     @Override
     public boolean hasBalance(Currency currency, Set<Context> contexts) {
-        return false;
+        return balance.containsKey(currency);
     }
 
     @Override
     public boolean hasBalance(Currency currency, Cause cause) {
-        return false;
+        return balance.containsKey(currency);
     }
 
     @Override
     public BigDecimal balance(Currency currency, Set<Context> contexts) {
-        return null;
+        return balance.getOrDefault(currency, defaultBalance(currency));
     }
 
     @Override
     public BigDecimal balance(Currency currency, Cause cause) {
-        return null;
+        return balance.getOrDefault(currency, defaultBalance(currency));
     }
 
     @Override
     public Map<Currency, BigDecimal> balances(Set<Context> contexts) {
-        return null;
+        return this.balance;
     }
 
     @Override
     public Map<Currency, BigDecimal> balances(Cause cause) {
-        return null;
+        return this.balance;
     }
 
     @Override
     public TransactionResult setBalance(Currency currency, BigDecimal amount, Set<Context> contexts) {
-        return null;
+        if ((currency instanceof CraftCurrency) && balance.containsKey(currency)){
+            balance.put(currency, amount);
+            return new CraftEcoResults(this, currency, amount, contexts, TransactionTypes.DEPOSIT.get(), ResultType.SUCCESS);
+        }
+        return new CraftEcoResults(this, currency, amount, contexts, TransactionTypes.DEPOSIT.get(), ResultType.FAILED);
     }
 
     @Override
     public TransactionResult setBalance(Currency currency, BigDecimal amount, Cause cause) {
-        return null;
+        if ((currency instanceof CraftCurrency) && balance.containsKey(currency)){
+            balance.put(currency, amount);
+            return new CraftEcoResults(this, currency, amount, new HashSet<Context>(){{add(((Context) cause.context()));}}, TransactionTypes.DEPOSIT.get(), ResultType.SUCCESS);
+        }
+        return new CraftEcoResults(this, currency, amount, contexts, TransactionTypes.DEPOSIT.get(), ResultType.FAILED);
     }
 
     @Override
