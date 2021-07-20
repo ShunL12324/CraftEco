@@ -8,6 +8,7 @@ import org.spongepowered.api.entity.living.player.server.ServerPlayer;
 import org.spongepowered.api.service.economy.Currency;
 import org.spongepowered.api.service.economy.account.Account;
 import org.spongepowered.api.service.economy.account.UniqueAccount;
+import sun.misc.IOUtils;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -29,6 +30,8 @@ public class SqliteHandler implements DBHandler{
     private static String CREATE_TABLE = "CREATE TABLE IF NOT EXISTS ? (`uuid` VARCHAR (40) PRIMARY KEY, `data` BLOB)";
     private static String CREATE_ACCOUNT = "INSERT INTO TABLE ? (`uuid`, `data`) VALUES (?, ?)";
     private static String GET_ACCOUNT = "SELECT `data` FROM ? WHERE `uuid` = ?";
+    private static String DELETE_ACCOUNT = "DELETE FROM ? WHERE `uuid` = ?";
+    private static String UPDATE_ACCOUNT = "UPDATE ? SET `data` = ? WHERE `uuid` = ?";
 
     public SqliteHandler(final Path configDir) throws IOException {
         dbConfig = ConfigLoader.instance.getConfig().database;
@@ -93,11 +96,34 @@ public class SqliteHandler implements DBHandler{
 
     @Override
     public boolean deleteAccount(UUID uuid) {
-        return false;
+        try (
+                Connection connection = dataSource.getConnection();
+                PreparedStatement statement = connection.prepareStatement(DELETE_ACCOUNT)
+        ){
+            statement.setString(1, dbConfig.tableName);
+            statement.setString(2, uuid.toString());
+            statement.execute();
+        }catch (SQLException e){
+            e.printStackTrace();
+            return false;
+        }
+        return true;
     }
 
     @Override
     public boolean saveAccount(Account account) {
-        return false;
+        try (
+                Connection connection = dataSource.getConnection();
+                PreparedStatement statement = connection.prepareStatement(UPDATE_ACCOUNT)
+        ){
+            statement.setString(1, dbConfig.tableName);
+            statement.setBlob(2, new ByteArrayInputStream());
+            statement.setString(3, account.identifier());
+            statement.execute();
+        }catch (SQLException e){
+            e.printStackTrace();
+            return false;
+        }
+        return true;
     }
 }
