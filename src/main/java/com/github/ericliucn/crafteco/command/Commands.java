@@ -4,6 +4,7 @@ import com.github.ericliucn.crafteco.Main;
 import com.github.ericliucn.crafteco.config.MessageLoader;
 import com.github.ericliucn.crafteco.eco.CraftCurrency;
 import com.github.ericliucn.crafteco.eco.CraftEcoService;
+import com.github.ericliucn.crafteco.handler.DBLoader;
 import com.github.ericliucn.crafteco.utils.ComponentUtil;
 import org.spongepowered.api.command.Command;
 import org.spongepowered.api.command.CommandResult;
@@ -17,18 +18,27 @@ import org.spongepowered.api.service.economy.transaction.ResultType;
 import org.spongepowered.api.service.economy.transaction.TransactionResult;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 public class Commands {
 
-    static Parameter.Value<User> userPara = Parameter.user().key("target").build();
+    static Parameter.Value<User> userPara = Parameter.builder(User.class)
+            .key("user")
+            .addParser(new UserParser())
+            .completer(new UserParser.UserCompleter())
+            .build();
+    static Parameter.Value<CraftCurrency> currencyPara = Parameter.builder(CraftCurrency.class)
+            .key("currency")
+            .addParser(new CraftCurrencyParser())
+            .completer(new CraftCurrencyParser.CraftCurrencyCompleter())
+            .build();
     static Parameter.Value<BigDecimal> amountPara = Parameter.bigDecimal().key("amount").build();
-    static Parameter.Value<CraftCurrency> currencyPara =
-            Parameter.builder(CraftCurrency.class).key("currency").addParser(new CraftCurrencyParser()).build();
 
     public static Command.Parameterized pay = Command.builder()
             .permission("crafteco.command.pay")
             .addParameter(userPara)
             .addParameter(amountPara)
+            .addParameter(currencyPara)
             .executor(context -> {
                 CraftEcoService service = Main.instance.getCraftEcoService();
                 ServerPlayer source = ((ServerPlayer) context.cause().root());
@@ -47,6 +57,18 @@ public class Commands {
                 }
             })
             .executionRequirements(commandCause -> (commandCause.root() instanceof ServerPlayer))
+            .build();
+
+    public static Command.Parameterized test = Command.builder()
+            .executor(context -> {
+                try {
+                    //create account
+                    DBLoader.instance.getDbHandler().createAccount(UUID.randomUUID());
+                }catch (Exception e){
+                    e.printStackTrace();
+                }
+                return CommandResult.success();
+            })
             .build();
 
 }

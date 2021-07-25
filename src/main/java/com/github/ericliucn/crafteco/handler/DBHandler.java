@@ -1,5 +1,6 @@
 package com.github.ericliucn.crafteco.handler;
 
+import com.github.ericliucn.crafteco.eco.CraftAccount;
 import org.spongepowered.api.entity.living.player.server.ServerPlayer;
 import org.spongepowered.api.service.economy.Currency;
 import org.spongepowered.api.service.economy.account.Account;
@@ -17,13 +18,13 @@ public interface DBHandler {
 
     void createTable();
 
-    Optional<Account> getAccount(UUID uuid);
+    Optional<CraftAccount> getAccount(UUID uuid);
 
     boolean createAccount(UUID uuid);
 
     boolean deleteAccount(UUID uuid);
 
-    boolean saveAccount(Account account);
+    boolean saveAccount(CraftAccount account);
 
 
 }

@@ -1,24 +1,21 @@
 package com.github.ericliucn.crafteco.handler;
 
-import com.github.ericliucn.crafteco.Main;
 import com.github.ericliucn.crafteco.config.ConfigLoader;
 import com.github.ericliucn.crafteco.config.CraftEcoConfig;
-import com.github.ericliucn.crafteco.utils.ComponentUtil;
-import org.spongepowered.api.entity.living.player.server.ServerPlayer;
-import org.spongepowered.api.service.economy.Currency;
-import org.spongepowered.api.service.economy.account.Account;
-import org.spongepowered.api.service.economy.account.UniqueAccount;
-import sun.misc.IOUtils;
+import com.github.ericliucn.crafteco.eco.CraftAccount;
+import org.spongepowered.api.data.persistence.DataContainer;
+import org.spongepowered.api.data.persistence.DataFormats;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.math.BigDecimal;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.sql.*;
-import java.util.ArrayList;
-import java.util.List;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -53,9 +50,8 @@ public class SqliteHandler implements DBHandler{
     public void createTable() {
         try (
                 Connection connection = dataSource.getConnection();
-                PreparedStatement statement = connection.prepareStatement(CREATE_TABLE)
+                PreparedStatement statement = connection.prepareStatement(CREATE_TABLE.replace("?", dbConfig.tableName))
                 ){
-            statement.setString(1, dbConfig.tableName);
             statement.execute();
         }catch (SQLException e){
             e.printStackTrace();
@@ -63,15 +59,20 @@ public class SqliteHandler implements DBHandler{
     }
 
     @Override
-    public Optional<Account> getAccount(UUID uuid) {
+    public Optional<CraftAccount> getAccount(UUID uuid) {
         try (
                 Connection connection = dataSource.getConnection();
                 PreparedStatement statement = connection.prepareStatement(GET_ACCOUNT)
         ){
             statement.setString(1, dbConfig.tableName);
             statement.setString(2, uuid.toString());
-            statement.execute();
-        }catch (SQLException e){
+            ResultSet resultSet = statement.executeQuery();
+            while (resultSet.next()){
+                InputStream stream = resultSet.getBinaryStream(1);
+                DataContainer container = DataFormats.NBT.get().readFrom(stream);
+                return CraftAccount.fromContainer(container);
+            }
+        }catch (SQLException | IOException e){
             e.printStackTrace();
         }
         return Optional.empty();
@@ -111,16 +112,16 @@ public class SqliteHandler implements DBHandler{
     }
 
     @Override
-    public boolean saveAccount(Account account) {
+    public boolean saveAccount(CraftAccount account) {
         try (
                 Connection connection = dataSource.getConnection();
                 PreparedStatement statement = connection.prepareStatement(UPDATE_ACCOUNT)
         ){
             statement.setString(1, dbConfig.tableName);
-            statement.setBlob(2, new ByteArrayInputStream());
+            statement.setBinaryStream(2, new ByteArrayInputStream(account.serialize().toByteArray()));
             statement.setString(3, account.identifier());
             statement.execute();
-        }catch (SQLException e){
+        }catch (SQLException | IOException e){
             e.printStackTrace();
             return false;
         }

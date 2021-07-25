@@ -6,6 +6,7 @@ import org.spongepowered.configurate.objectmapping.ConfigSerializable;
 import org.spongepowered.configurate.objectmapping.meta.Comment;
 import org.spongepowered.configurate.objectmapping.meta.Setting;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,7 +24,7 @@ public class CraftEcoConfig {
     @Comment(value = "Add currency here, beware that only one currency be set default currency\n" +
             "The first currency with \"isDefault = true\" will be the default currency")
     public List<CraftCurrency> currencies = new ArrayList<CraftCurrency>(){{
-        add(new CraftCurrency(Component.text("dollar"), Component.text("dollars"), Component.text("$"), true));
+        add(new CraftCurrency(Component.text("dollar"), Component.text("dollars"), Component.text("$"), true, BigDecimal.ZERO));
     }};
 
     @ConfigSerializable

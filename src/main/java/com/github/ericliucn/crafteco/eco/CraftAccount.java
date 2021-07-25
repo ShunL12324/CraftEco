@@ -3,6 +3,10 @@ package com.github.ericliucn.crafteco.eco;
 import com.github.ericliucn.crafteco.Main;
 import com.github.ericliucn.crafteco.utils.ComponentUtil;
 import net.kyori.adventure.text.Component;
+import org.spongepowered.api.data.SerializableDataHolder;
+import org.spongepowered.api.data.persistence.DataContainer;
+import org.spongepowered.api.data.persistence.DataFormats;
+import org.spongepowered.api.data.persistence.DataQuery;
 import org.spongepowered.api.event.Cause;
 import org.spongepowered.api.service.context.Context;
 import org.spongepowered.api.service.economy.Currency;
@@ -13,6 +17,10 @@ import org.spongepowered.api.service.economy.transaction.TransactionResult;
 import org.spongepowered.api.service.economy.transaction.TransactionTypes;
 import org.spongepowered.api.service.economy.transaction.TransferResult;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -166,4 +174,27 @@ public class CraftAccount implements UniqueAccount {
     private Set<Context> toContexts(Cause cause){
         return cause.all().stream().map(o -> ((Context) o)).collect(Collectors.toSet());
     }
+
+    public ByteArrayOutputStream serialize() throws IOException {
+        DataContainer container = DataContainer.createNew();
+        container.set(DataQuery.of("balance"), this.balance);
+        container.set(DataQuery.of("uuid"), this.userUUID.toString());
+        container.set(DataQuery.of("isUnique"), this.isUnique);
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        DataFormats.NBT.get().writeTo(stream, container);
+        return stream;
+    }
+
+    public static Optional<CraftAccount> fromContainer(final DataContainer container){
+        try {
+            Map<Currency, BigDecimal> map = ((Map<Currency, BigDecimal>) container.getMap(DataQuery.of("balance")).get());
+            UUID uuid = UUID.fromString(container.getString(DataQuery.of("uuid")).get());
+            boolean isUnique = container.getBoolean(DataQuery.of("isUnique")).get();
+            return Optional.of(new CraftAccount(uuid, map, isUnique));
+        }catch (Exception e){
+            e.printStackTrace();
+            return Optional.empty();
+        }
+    }
+
 }
