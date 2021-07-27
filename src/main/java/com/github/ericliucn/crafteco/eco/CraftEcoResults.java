@@ -1,6 +1,7 @@
 package com.github.ericliucn.crafteco.eco;
 
 import org.jetbrains.annotations.NotNull;
+import org.spongepowered.api.Sponge;
 import org.spongepowered.api.service.context.Context;
 import org.spongepowered.api.service.economy.Currency;
 import org.spongepowered.api.service.economy.account.Account;
@@ -14,43 +15,25 @@ import java.util.Set;
 
 public class CraftEcoResults implements TransactionResult {
 
-    private CraftAccount account;
-    private Currency currency;
-    private BigDecimal amount;
-    private Set<Context> contexts;
-    private TransactionType type;
-    private ResultType resultType;
-
-    public static Builder DEPOSIT_SUCCESS(){
-        return new Builder()
-                .result(ResultType.SUCCESS)
-                .type(TransactionTypes.DEPOSIT.get());
-    }
-
-    public static Builder DEPOSIT_FAIL(){
-        return new Builder()
-                .result(ResultType.FAILED)
-                .type(TransactionTypes.DEPOSIT.get());
-    }
-
-    public static Builder WITHDRAW_SUCCESS(){
-        return new Builder()
-                .result(ResultType.SUCCESS)
-                .type(TransactionTypes.DEPOSIT.get());
-    }
-
-    public static Builder WITHDRAW_FAIL(){
-        return new Builder()
-                .result(ResultType.FAILED)
-                .type(TransactionTypes.DEPOSIT.get());
-    }
+    private final CraftAccount account;
+    private final Currency currency;
+    private final BigDecimal amount;
+    private final Set<Context> contexts;
+    private final TransactionType type;
+    private final ResultType resultType;
 
     public static Builder builder(){
-        return new Builder();
+        return Sponge.game().builderProvider().provide(Builder.class);
     }
 
-    private CraftEcoResults(){
-
+    private CraftEcoResults(CraftAccount account, CraftCurrency currency, BigDecimal amount, Set<Context> contexts,
+                            TransactionType transactionType, ResultType resultType){
+        this.account = account;
+        this.currency = currency;
+        this.amount = amount;
+        this.contexts = contexts;
+        this.type = transactionType;
+        this.resultType = resultType;
     }
 
 
@@ -86,45 +69,46 @@ public class CraftEcoResults implements TransactionResult {
 
     public static class Builder implements org.spongepowered.api.util.Builder<CraftEcoResults, Builder>{
 
-        private final CraftEcoResults results;
+        private CraftAccount account;
+        private CraftCurrency currency;
+        private BigDecimal amount;
+        private Set<Context> contexts;
+        private TransactionType type;
+        private ResultType resultType;
 
-        public Builder(){
-            results = new CraftEcoResults();
-        }
-
-        public Builder account(CraftAccount account){
-            results.account = account;
+        public Builder account(final CraftAccount account){
+            this.account = account;
             return this;
         }
 
-        public Builder currency(Currency currency){
-            results.currency = currency;
+        public Builder currency(final CraftCurrency currency){
+            this.currency = currency;
             return this;
         }
 
-        public Builder amount(BigDecimal amount){
-            results.amount = amount;
+        public Builder amount(final BigDecimal amount){
+            this.amount = amount;
             return this;
         }
 
-        public Builder contexts(Set<Context> contexts){
-            results.contexts = contexts;
+        public Builder contexts(final Set<Context> contexts){
+            this.contexts = contexts;
             return this;
         }
 
-        public Builder result(ResultType resultType){
-            results.resultType = resultType;
+        public Builder result(final ResultType resultType){
+            this.resultType = resultType;
             return this;
         }
 
-        public Builder type(TransactionType transactionType){
-            results.type = transactionType;
+        public Builder type(final TransactionType transactionType){
+            this.type = transactionType;
             return this;
         }
 
         @Override
         public @NotNull CraftEcoResults build() {
-            return results;
+            return new CraftEcoResults(this.account, this.currency, this.amount, this.contexts, this.type, this.resultType);
         }
     }
 

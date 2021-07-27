@@ -9,7 +9,6 @@ import org.spongepowered.api.command.parameter.Parameter;
 import org.spongepowered.api.command.parameter.managed.ValueCompleter;
 import org.spongepowered.api.command.parameter.managed.ValueParser;
 import org.spongepowered.api.entity.living.player.User;
-import org.spongepowered.api.user.UserManager;
 
 import java.util.List;
 import java.util.Optional;
