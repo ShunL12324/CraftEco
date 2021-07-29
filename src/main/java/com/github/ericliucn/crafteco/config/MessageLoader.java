@@ -1,7 +1,7 @@
 package com.github.ericliucn.crafteco.config;
 
 import com.github.ericliucn.crafteco.Main;
-import com.github.ericliucn.crafteco.utils.ComponentUtil;
+import com.github.ericliucn.crafteco.utils.Util;
 import net.kyori.adventure.text.Component;
 import org.apache.logging.log4j.Level;
 import org.spongepowered.api.Sponge;
@@ -47,7 +47,7 @@ public class MessageLoader {
     }
 
     public Component getMessage(String key){
-        return ComponentUtil.toComponent(message.getProperty(key));
+        return Util.toComponent(message.getProperty(key));
     }
 
 

@@ -5,7 +5,7 @@ import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 
-public class ComponentUtil {
+public class Util {
 
     public static TextComponent toComponent(String str){
         return LegacyComponentSerializer.legacyAmpersand().deserialize(str);

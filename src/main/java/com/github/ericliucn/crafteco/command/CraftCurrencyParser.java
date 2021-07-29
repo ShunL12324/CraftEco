@@ -2,7 +2,7 @@ package com.github.ericliucn.crafteco.command;
 
 import com.github.ericliucn.crafteco.Main;
 import com.github.ericliucn.crafteco.eco.CraftCurrency;
-import com.github.ericliucn.crafteco.utils.ComponentUtil;
+import com.github.ericliucn.crafteco.utils.Util;
 import org.spongepowered.api.command.CommandCompletion;
 import org.spongepowered.api.command.exception.ArgumentParseException;
 import org.spongepowered.api.command.parameter.ArgumentReader;
@@ -22,7 +22,7 @@ class CraftCurrencyParser implements ValueParser<CraftCurrency> {
         reader.skipWhitespace();
         String currencyName = reader.parseString();
         for (CraftCurrency currency : Main.instance.getCraftEcoService().currencies) {
-            if (ComponentUtil.toPlain(currency.displayName()).equalsIgnoreCase(currencyName)){
+            if (Util.toPlain(currency.displayName()).equalsIgnoreCase(currencyName)){
                 return Optional.of(currency);
             }
         }
@@ -34,7 +34,7 @@ class CraftCurrencyParser implements ValueParser<CraftCurrency> {
         @Override
         public List<CommandCompletion> complete(CommandContext context, String currentInput) {
             return Main.instance.getCraftEcoService().currencies.stream()
-                    .map(cur -> CommandCompletion.of(ComponentUtil.toPlain(cur.displayName())))
+                    .map(cur -> CommandCompletion.of(Util.toPlain(cur.displayName())))
                     .collect(Collectors.toList());
         }
     }
