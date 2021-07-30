@@ -1,11 +1,14 @@
-package com.github.ericliucn.crafteco.eco;
+package com.github.ericliucn.crafteco.eco.account;
 
+import com.github.ericliucn.crafteco.eco.CraftCurrency;
+import com.github.ericliucn.crafteco.eco.CraftResult;
 import com.github.ericliucn.crafteco.utils.Util;
 import net.kyori.adventure.text.Component;
 import org.spongepowered.api.event.Cause;
 import org.spongepowered.api.service.context.Context;
 import org.spongepowered.api.service.economy.Currency;
 import org.spongepowered.api.service.economy.account.Account;
+import org.spongepowered.api.service.economy.account.UniqueAccount;
 import org.spongepowered.api.service.economy.transaction.ResultType;
 import org.spongepowered.api.service.economy.transaction.TransactionResult;
 import org.spongepowered.api.service.economy.transaction.TransactionTypes;
@@ -16,25 +19,21 @@ import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
-public class CraftAccount implements Account {
+public class CraftAccount implements Account, UniqueAccount {
 
     private final Map<Currency, BigDecimal> balanceMap;
-    private final String identifier;
+    private final UUID uniqueID;
 
-    public CraftAccount(final Map<Currency, BigDecimal> balanceMap, final String identifier){
-        this.balanceMap = balanceMap;
-        this.identifier = identifier;
-    }
-
-    public CraftAccount(final String identifier){
+    public CraftAccount(final UUID uniqueID){
         this.balanceMap = new HashMap<>();
-        this.identifier = identifier;
+        this.uniqueID = uniqueID;
     }
 
     @Override
     public Component displayName() {
-        return Util.toComponent(this.identifier);
+        return Util.toComponent(this.identifier());
     }
 
     @Override
@@ -211,8 +210,9 @@ public class CraftAccount implements Account {
 
     @Override
     public String identifier() {
-        return this.identifier;
+        return this.uniqueID.toString();
     }
+
 
     public byte[] serialize() throws IOException {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
@@ -227,4 +227,8 @@ public class CraftAccount implements Account {
         return ((CraftAccount) objectInputStream.readObject());
     }
 
+    @Override
+    public UUID uniqueId() {
+        return this.uniqueID;
+    }
 }

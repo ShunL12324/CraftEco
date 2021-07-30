@@ -1,6 +1,6 @@
 package com.github.ericliucn.crafteco.eco;
 
-import org.checkerframework.checker.units.qual.C;
+import com.github.ericliucn.crafteco.eco.account.CraftAccount;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.api.Sponge;
@@ -8,7 +8,10 @@ import org.spongepowered.api.event.Cause;
 import org.spongepowered.api.service.context.Context;
 import org.spongepowered.api.service.economy.Currency;
 import org.spongepowered.api.service.economy.account.Account;
-import org.spongepowered.api.service.economy.transaction.*;
+import org.spongepowered.api.service.economy.transaction.ResultType;
+import org.spongepowered.api.service.economy.transaction.TransactionResult;
+import org.spongepowered.api.service.economy.transaction.TransactionType;
+import org.spongepowered.api.service.economy.transaction.TransferResult;
 
 import java.math.BigDecimal;
 import java.util.Set;

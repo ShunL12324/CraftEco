@@ -1,12 +1,10 @@
 package com.github.ericliucn.crafteco.config;
 
-import com.github.ericliucn.crafteco.Main;
 import com.github.ericliucn.crafteco.config.serializer.ComponentSerializer;
 import com.github.ericliucn.crafteco.config.serializer.CraftCurrencySerializer;
 import com.github.ericliucn.crafteco.eco.CraftCurrency;
 import io.leangen.geantyref.TypeToken;
 import net.kyori.adventure.text.Component;
-import org.apache.logging.log4j.Level;
 import org.spongepowered.configurate.CommentedConfigurationNode;
 import org.spongepowered.configurate.ConfigurateException;
 import org.spongepowered.configurate.ConfigurationOptions;

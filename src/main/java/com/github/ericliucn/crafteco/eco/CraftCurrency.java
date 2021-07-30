@@ -1,9 +1,6 @@
 package com.github.ericliucn.crafteco.eco;
 
 import net.kyori.adventure.text.Component;
-import org.spongepowered.api.data.SerializableDataHolder;
-import org.spongepowered.api.data.persistence.DataContainer;
-import org.spongepowered.api.data.persistence.DataView;
 import org.spongepowered.api.service.economy.Currency;
 
 import java.math.BigDecimal;

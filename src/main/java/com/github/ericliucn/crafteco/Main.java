@@ -4,6 +4,7 @@ import com.github.ericliucn.crafteco.command.Commands;
 import com.github.ericliucn.crafteco.config.ConfigLoader;
 import com.github.ericliucn.crafteco.config.MessageLoader;
 import com.github.ericliucn.crafteco.eco.CraftEcoService;
+import com.github.ericliucn.crafteco.eco.CraftResult;
 import com.github.ericliucn.crafteco.handler.DBLoader;
 import com.google.inject.Inject;
 import org.apache.logging.log4j.Level;
@@ -19,7 +20,6 @@ import org.spongepowered.plugin.jvm.Plugin;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.function.Supplier;
 
 /**
  * The main class of your Sponge plugin.
@@ -69,8 +69,14 @@ public class Main {
     }
 
     @Listener
+    public void onRegisterBuilder(final RegisterBuilderEvent event){
+        event.register(CraftResult.Builder.class, CraftResult.Builder::new);
+    }
+
+    @Listener
     public void onRegisterCommands(final RegisterCommandEvent<Command.Parameterized> event) {
         event.register(this.container, Commands.pay, "pay");
+        event.register(this.container, Commands.test, "test");
     }
 
     public void printLog(Level level, String content){

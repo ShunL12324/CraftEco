@@ -4,6 +4,7 @@ import com.github.ericliucn.crafteco.Main;
 import com.github.ericliucn.crafteco.config.MessageLoader;
 import com.github.ericliucn.crafteco.eco.CraftCurrency;
 import com.github.ericliucn.crafteco.eco.CraftEcoService;
+import com.github.ericliucn.crafteco.eco.account.CraftAccount;
 import com.github.ericliucn.crafteco.handler.DBLoader;
 import org.spongepowered.api.command.Command;
 import org.spongepowered.api.command.CommandResult;
@@ -15,7 +16,6 @@ import org.spongepowered.api.service.economy.transaction.ResultType;
 import org.spongepowered.api.service.economy.transaction.TransactionResult;
 
 import java.math.BigDecimal;
-import java.util.UUID;
 
 public class Commands {
 
@@ -60,12 +60,14 @@ public class Commands {
             .executor(context -> {
                 try {
                     //create account
-                    DBLoader.instance.getDbHandler().createAccount(UUID.randomUUID());
+                    Main.instance.getCraftEcoService().findOrCreateAccount(((ServerPlayer) context.cause().root()).uniqueId());
+                    Main.instance.getCraftEcoService().saveCache();
                 }catch (Exception e){
                     e.printStackTrace();
                 }
                 return CommandResult.success();
             })
             .build();
+
 
 }
