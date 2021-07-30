@@ -2,24 +2,22 @@ package com.github.ericliucn.crafteco.eco;
 
 import com.github.ericliucn.crafteco.utils.Util;
 import net.kyori.adventure.text.Component;
-import org.spongepowered.api.data.persistence.DataContainer;
-import org.spongepowered.api.data.persistence.DataSerializable;
 import org.spongepowered.api.event.Cause;
 import org.spongepowered.api.service.context.Context;
 import org.spongepowered.api.service.economy.Currency;
 import org.spongepowered.api.service.economy.account.Account;
-import org.spongepowered.api.service.economy.account.VirtualAccount;
 import org.spongepowered.api.service.economy.transaction.ResultType;
 import org.spongepowered.api.service.economy.transaction.TransactionResult;
 import org.spongepowered.api.service.economy.transaction.TransactionTypes;
 import org.spongepowered.api.service.economy.transaction.TransferResult;
 
+import java.io.*;
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-public class CraftAccount implements Account, DataSerializable {
+public class CraftAccount implements Account {
 
     private final Map<Currency, BigDecimal> balanceMap;
     private final String identifier;
@@ -216,13 +214,17 @@ public class CraftAccount implements Account, DataSerializable {
         return this.identifier;
     }
 
-    @Override
-    public int contentVersion() {
-        return 0;
+    public byte[] serialize() throws IOException {
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        ObjectOutputStream objectOutputStream = new ObjectOutputStream(byteArrayOutputStream);
+        objectOutputStream.writeObject(this);
+        return byteArrayOutputStream.toByteArray();
     }
 
-    @Override
-    public DataContainer toContainer() {
-        return null;
+    public static CraftAccount deserialize(byte[] bytes) throws IOException, ClassNotFoundException {
+        ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(bytes);
+        ObjectInputStream objectInputStream = new ObjectInputStream(byteArrayInputStream);
+        return ((CraftAccount) objectInputStream.readObject());
     }
+
 }
