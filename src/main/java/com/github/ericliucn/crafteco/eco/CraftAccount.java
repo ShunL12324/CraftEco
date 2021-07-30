@@ -8,6 +8,7 @@ import org.spongepowered.api.event.Cause;
 import org.spongepowered.api.service.context.Context;
 import org.spongepowered.api.service.economy.Currency;
 import org.spongepowered.api.service.economy.account.Account;
+import org.spongepowered.api.service.economy.account.VirtualAccount;
 import org.spongepowered.api.service.economy.transaction.ResultType;
 import org.spongepowered.api.service.economy.transaction.TransactionResult;
 import org.spongepowered.api.service.economy.transaction.TransactionTypes;
@@ -17,7 +18,6 @@ import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class CraftAccount implements Account, DataSerializable {
 
@@ -78,7 +78,7 @@ public class CraftAccount implements Account, DataSerializable {
     public TransactionResult setBalance(Currency currency, BigDecimal amount) {
         if (currency instanceof CraftCurrency){
             this.balanceMap.put(currency, amount);
-            return CraftEcoResults.builder().currency((CraftCurrency) currency).account(this).amount(amount).result(ResultType.SUCCESS).build();
+            return CraftResult.builder().currency((CraftCurrency) currency).account(this).amount(amount).result(ResultType.SUCCESS).build();
         }else {
             throw new IllegalStateException("The currency must be CraftCurrency!");
         }
@@ -86,31 +86,36 @@ public class CraftAccount implements Account, DataSerializable {
 
     @Override
     public TransactionResult setBalance(Currency currency, BigDecimal amount, Set<Context> contexts) {
-        return setBalance(currency, amount);
+        return ((CraftResult) setBalance(currency, amount)).toBuilder().contexts(contexts).build();
     }
 
     @Override
     public TransactionResult setBalance(Currency currency, BigDecimal amount, Cause cause) {
-        return setBalance(currency, amount);
+        return ((CraftResult) setBalance(currency, amount)).toBuilder().cause(cause).build();
     }
 
     @Override
     public Map<Currency, TransactionResult> resetBalances() {
         final Map<Currency, TransactionResult> resultMap = new HashMap<>();
         for (Map.Entry<Currency, BigDecimal> entry : this.balanceMap.entrySet()) {
-            resultMap.put(entry.getKey(), setBalance(entry.getKey(), defaultBalance(entry.getKey())));
+            CraftCurrency craftCurrency = (CraftCurrency) entry.getKey();
+            resultMap.put(craftCurrency, setBalance(craftCurrency, defaultBalance(craftCurrency)));
         }
         return resultMap;
     }
 
     @Override
     public Map<Currency, TransactionResult> resetBalances(Set<Context> contexts) {
-        return resetBalances();
+        Map<Currency, TransactionResult> map = resetBalances();
+        map.replaceAll((k, v) -> ((CraftResult) v).toBuilder().contexts(contexts).build());
+        return map;
     }
 
     @Override
     public Map<Currency, TransactionResult> resetBalances(Cause cause) {
-        return resetBalances();
+        Map<Currency, TransactionResult> map = resetBalances();
+        map.replaceAll((k, v) -> ((CraftResult) v).toBuilder().cause(cause).build());
+        return map;
     }
 
     @Override
@@ -120,19 +125,19 @@ public class CraftAccount implements Account, DataSerializable {
 
     @Override
     public TransactionResult resetBalance(Currency currency, Set<Context> contexts) {
-        return resetBalance(currency);
+        return ((CraftResult) resetBalance(currency)).toBuilder().contexts(contexts).build();
     }
 
     @Override
     public TransactionResult resetBalance(Currency currency, Cause cause) {
-        return resetBalance(currency);
+        return ((CraftResult) resetBalance(currency)).toBuilder().cause(cause).build();
     }
 
     @Override
     public TransactionResult deposit(Currency currency, BigDecimal amount) {
         if (currency instanceof CraftCurrency){
             this.balanceMap.put(currency, balance(currency).add(amount));
-            return CraftEcoResults.builder()
+            return CraftResult.builder()
                     .currency((CraftCurrency) currency)
                     .account(this)
                     .result(ResultType.SUCCESS)
@@ -146,19 +151,19 @@ public class CraftAccount implements Account, DataSerializable {
 
     @Override
     public TransactionResult deposit(Currency currency, BigDecimal amount, Set<Context> contexts) {
-        return deposit(currency, amount);
+        return ((CraftResult) deposit(currency, amount)).toBuilder().contexts(contexts).build();
     }
 
     @Override
     public TransactionResult deposit(Currency currency, BigDecimal amount, Cause cause) {
-        return deposit(currency, amount);
+        return ((CraftResult) deposit(currency, amount)).toBuilder().cause(cause).build();
     }
 
     @Override
     public TransactionResult withdraw(Currency currency, BigDecimal amount) {
         if (currency instanceof CraftCurrency){
             this.balanceMap.put(currency, balance(currency).subtract(amount));
-            return CraftEcoResults.builder()
+            return CraftResult.builder()
                     .currency((CraftCurrency) currency)
                     .account(this)
                     .result(ResultType.SUCCESS)
@@ -172,35 +177,37 @@ public class CraftAccount implements Account, DataSerializable {
 
     @Override
     public TransactionResult withdraw(Currency currency, BigDecimal amount, Set<Context> contexts) {
-        return withdraw(currency, amount);
+        return ((CraftResult) withdraw(currency, amount)).toBuilder().contexts(contexts).build();
     }
 
     @Override
     public TransactionResult withdraw(Currency currency, BigDecimal amount, Cause cause) {
-        return withdraw(currency, amount);
+        return ((CraftResult) withdraw(currency, amount)).toBuilder().cause(cause).build();
     }
 
     @Override
     public TransferResult transfer(Account to, Currency currency, BigDecimal amount) {
         if ((to instanceof CraftAccount) && (currency instanceof CraftCurrency)){
-            try {
-                withdraw(currency, amount);
-                to.deposit(currency, amount);
-                return TransferResult
-            }catch (Exception e){
-                e.printStackTrace();
+            CraftResult wResult = (CraftResult) withdraw(currency, amount);
+            CraftResult dResult = (CraftResult) to.deposit(currency, amount);
+            if (wResult.result().equals(ResultType.SUCCESS) && dResult.result().equals(ResultType.SUCCESS)){
+                return wResult.toBuilder().type(TransactionTypes.TRANSFER.get()).build().toTransferResult(((CraftAccount) to));
+            }else {
+                throw new IllegalStateException("Transfer failed!");
             }
+        }else {
+            throw new IllegalStateException("The currency must be CraftCurrency!");
         }
     }
 
     @Override
     public TransferResult transfer(Account to, Currency currency, BigDecimal amount, Set<Context> contexts) {
-        return transfer(to, currency, amount);
+        return ((CraftResult.CraftTransferResult) transfer(to, currency, amount)).toBuilder().contexts(contexts).build().toTransferResult(((CraftAccount) to));
     }
 
     @Override
     public TransferResult transfer(Account to, Currency currency, BigDecimal amount, Cause cause) {
-        return transfer(to, currency, amount);
+        return ((CraftResult.CraftTransferResult) transfer(to, currency, amount)).toBuilder().cause(cause).build().toTransferResult(((CraftAccount) to));
     }
 
 

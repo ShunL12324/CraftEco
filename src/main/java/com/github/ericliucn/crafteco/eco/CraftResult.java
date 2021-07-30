@@ -1,5 +1,6 @@
 package com.github.ericliucn.crafteco.eco;
 
+import org.checkerframework.checker.units.qual.C;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.api.Sponge;
@@ -7,18 +8,15 @@ import org.spongepowered.api.event.Cause;
 import org.spongepowered.api.service.context.Context;
 import org.spongepowered.api.service.economy.Currency;
 import org.spongepowered.api.service.economy.account.Account;
-import org.spongepowered.api.service.economy.transaction.ResultType;
-import org.spongepowered.api.service.economy.transaction.TransactionResult;
-import org.spongepowered.api.service.economy.transaction.TransactionType;
-import org.spongepowered.api.service.economy.transaction.TransactionTypes;
+import org.spongepowered.api.service.economy.transaction.*;
 
 import java.math.BigDecimal;
 import java.util.Set;
 
-public class CraftEcoResults implements TransactionResult {
+public class CraftResult implements TransactionResult {
 
     private final CraftAccount account;
-    private final Currency currency;
+    private final CraftCurrency currency;
     private final BigDecimal amount;
     private final TransactionType type;
     private final ResultType resultType;
@@ -31,8 +29,8 @@ public class CraftEcoResults implements TransactionResult {
         return Sponge.game().builderProvider().provide(Builder.class);
     }
 
-    private CraftEcoResults(CraftAccount account, CraftCurrency currency, BigDecimal amount, Set<Context> contexts,
-                            TransactionType transactionType, ResultType resultType, Cause cause){
+    private CraftResult(CraftAccount account, CraftCurrency currency, BigDecimal amount, @Nullable Set<Context> contexts,
+                        TransactionType transactionType, ResultType resultType, @Nullable Cause cause){
         this.account = account;
         this.currency = currency;
         this.amount = amount;
@@ -80,7 +78,23 @@ public class CraftEcoResults implements TransactionResult {
         return this.cause;
     }
 
-    public static class Builder implements org.spongepowered.api.util.Builder<CraftEcoResults, Builder>{
+    public Builder toBuilder(){
+        Builder builder = new Builder();
+        builder.account(this.account);
+        builder.amount(this.amount);
+        builder.currency(this.currency);
+        builder.type(this.type);
+        builder.result(this.resultType);
+        builder.cause(this.cause);
+        builder.contexts(this.contexts);
+        return builder;
+    }
+
+    public CraftTransferResult toTransferResult(CraftAccount accountTo){
+        return new CraftTransferResult(this, accountTo);
+    }
+
+    public static class Builder implements org.spongepowered.api.util.Builder<CraftResult, Builder>{
 
         private CraftAccount account;
         private CraftCurrency currency;
@@ -126,9 +140,25 @@ public class CraftEcoResults implements TransactionResult {
         }
 
         @Override
-        public @NotNull CraftEcoResults build() {
-            return new CraftEcoResults(this.account, this.currency, this.amount, this.contexts, this.type, this.resultType, this.cause);
+        public @NotNull CraftResult build() {
+            return new CraftResult(this.account, this.currency, this.amount, this.contexts, this.type, this.resultType, this.cause);
         }
+    }
+
+    public static class CraftTransferResult extends CraftResult implements TransferResult {
+
+        private final CraftAccount accountTo;
+
+        private CraftTransferResult(CraftResult result, CraftAccount accountTo) {
+            super(result.account, result.currency, result.amount, result.contexts, result.type, result.resultType, result.cause);
+            this.accountTo = accountTo;
+        }
+
+        @Override
+        public Account accountTo() {
+            return this.accountTo;
+        }
+
     }
 
 
