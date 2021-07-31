@@ -11,6 +11,7 @@ public class CraftVirtualAccount extends CraftAccount implements VirtualAccount 
     public CraftVirtualAccount(String name, UUID uniqueID) {
         super(uniqueID);
         this.name = name;
+        this.isVirtual = true;
     }
 
     @Override

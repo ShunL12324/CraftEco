@@ -3,7 +3,12 @@ package com.github.ericliucn.crafteco.eco.account;
 import com.github.ericliucn.crafteco.eco.CraftCurrency;
 import com.github.ericliucn.crafteco.eco.CraftResult;
 import com.github.ericliucn.crafteco.utils.Util;
+import com.google.gson.JsonObject;
+import javafx.util.Pair;
 import net.kyori.adventure.text.Component;
+import org.spongepowered.api.data.persistence.DataContainer;
+import org.spongepowered.api.data.persistence.DataFormats;
+import org.spongepowered.api.data.persistence.DataQuery;
 import org.spongepowered.api.event.Cause;
 import org.spongepowered.api.service.context.Context;
 import org.spongepowered.api.service.economy.Currency;
@@ -13,6 +18,9 @@ import org.spongepowered.api.service.economy.transaction.ResultType;
 import org.spongepowered.api.service.economy.transaction.TransactionResult;
 import org.spongepowered.api.service.economy.transaction.TransactionTypes;
 import org.spongepowered.api.service.economy.transaction.TransferResult;
+import org.spongepowered.configurate.CommentedConfigurationNode;
+import org.spongepowered.configurate.ConfigurationNode;
+import org.spongepowered.configurate.hocon.HoconConfigurationLoader;
 
 import java.io.*;
 import java.math.BigDecimal;
@@ -25,10 +33,12 @@ public class CraftAccount implements Account, UniqueAccount {
 
     private final Map<Currency, BigDecimal> balanceMap;
     private final UUID uniqueID;
+    protected boolean isVirtual;
 
     public CraftAccount(final UUID uniqueID){
         this.balanceMap = new HashMap<>();
         this.uniqueID = uniqueID;
+        this.isVirtual = false;
     }
 
     @Override
@@ -213,12 +223,21 @@ public class CraftAccount implements Account, UniqueAccount {
         return this.uniqueID.toString();
     }
 
+    public boolean isVirtual(){
+        return this.isVirtual;
+    }
 
     public byte[] serialize() throws IOException {
-        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        ObjectOutputStream objectOutputStream = new ObjectOutputStream(byteArrayOutputStream);
-        objectOutputStream.writeObject(this);
-        return byteArrayOutputStream.toByteArray();
+        Map<String , Map<String, String>> data = new HashMap<>();
+        Map<String, String> properties = new HashMap<>();
+        Map<String,String> balanceData = new HashMap<>();
+        properties.put("uuid", this.uniqueID.toString());
+        properties.put("identifier", this.identifier());
+        properties.put("isVirtual", this.isVirtual ? "true":"false");
+        for (Map.Entry<Currency, BigDecimal> entry : this.balanceMap.entrySet()) {
+            CraftCurrency currency = ((CraftCurrency) entry.getKey());
+
+        }
     }
 
     public static CraftAccount deserialize(byte[] bytes) throws IOException, ClassNotFoundException {
