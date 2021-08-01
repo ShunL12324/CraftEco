@@ -17,11 +17,14 @@ import java.util.stream.Stream;
 
 public class CraftEcoService implements EconomyService {
 
+    public static CraftEcoService instance;
+
     private final CraftEcoConfig config;
     private final Map<UUID, CraftAccount> uniqueAccounts = new ConcurrentHashMap<>();
     private final Map<String, CraftVirtualAccount> virtualAccounts = new ConcurrentHashMap<>();
 
     public CraftEcoService(){
+        instance = this;
         config = ConfigLoader.instance.getConfig();
         loadCache();
     }

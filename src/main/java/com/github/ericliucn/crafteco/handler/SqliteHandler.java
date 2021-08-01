@@ -62,7 +62,7 @@ public class SqliteHandler implements DBHandler{
             while (resultSet.next()){
                 return Optional.ofNullable(CraftAccount.deserialize(resultSet.getBytes("data")));
             }
-        }catch (SQLException | IOException | ClassNotFoundException e){
+        }catch (SQLException e){
             e.printStackTrace();
         }
         return Optional.empty();
@@ -131,7 +131,7 @@ public class SqliteHandler implements DBHandler{
                 byte[] bytes = resultSet.getBytes("data");
                 craftAccounts.add(CraftAccount.deserialize(bytes));
             }
-        }catch (SQLException | IOException | ClassNotFoundException e){
+        }catch (SQLException e){
             e.printStackTrace();
         }
         return craftAccounts;

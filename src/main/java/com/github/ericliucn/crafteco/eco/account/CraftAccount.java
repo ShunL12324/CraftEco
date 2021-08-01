@@ -1,11 +1,18 @@
 package com.github.ericliucn.crafteco.eco.account;
 
+import com.github.ericliucn.crafteco.Main;
+import com.github.ericliucn.crafteco.config.ConfigLoader;
 import com.github.ericliucn.crafteco.eco.CraftCurrency;
+import com.github.ericliucn.crafteco.eco.CraftEcoService;
 import com.github.ericliucn.crafteco.eco.CraftResult;
 import com.github.ericliucn.crafteco.utils.Util;
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import io.leangen.geantyref.TypeToken;
 import javafx.util.Pair;
 import net.kyori.adventure.text.Component;
+import org.jetbrains.annotations.Nullable;
 import org.spongepowered.api.data.persistence.DataContainer;
 import org.spongepowered.api.data.persistence.DataFormats;
 import org.spongepowered.api.data.persistence.DataQuery;
@@ -23,20 +30,23 @@ import org.spongepowered.configurate.ConfigurationNode;
 import org.spongepowered.configurate.hocon.HoconConfigurationLoader;
 
 import java.io.*;
+import java.lang.reflect.Type;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class CraftAccount implements Account, UniqueAccount {
 
-    private final Map<Currency, BigDecimal> balanceMap;
+    private Map<Currency, BigDecimal> balanceMap;
     private final UUID uniqueID;
     protected boolean isVirtual;
 
     public CraftAccount(final UUID uniqueID){
-        this.balanceMap = new HashMap<>();
+        this.balanceMap = new ConcurrentHashMap<>();
         this.uniqueID = uniqueID;
         this.isVirtual = false;
     }
@@ -227,6 +237,9 @@ public class CraftAccount implements Account, UniqueAccount {
         return this.isVirtual;
     }
 
+    private static final Gson GSON = new Gson();
+    private static final Type TYPE = new TypeToken<Map<String, Map<String, String>>>(){}.getType();
+
     public byte[] serialize() throws IOException {
         Map<String , Map<String, String>> data = new HashMap<>();
         Map<String, String> properties = new HashMap<>();
@@ -236,14 +249,38 @@ public class CraftAccount implements Account, UniqueAccount {
         properties.put("isVirtual", this.isVirtual ? "true":"false");
         for (Map.Entry<Currency, BigDecimal> entry : this.balanceMap.entrySet()) {
             CraftCurrency currency = ((CraftCurrency) entry.getKey());
-
+            balanceData.put(currency.toPlain(), entry.getValue().toString());
         }
+        data.put("properties", properties);
+        data.put("balanceData", balanceData);
+        return GSON.toJson(data).getBytes(StandardCharsets.UTF_8);
     }
 
-    public static CraftAccount deserialize(byte[] bytes) throws IOException, ClassNotFoundException {
-        ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(bytes);
-        ObjectInputStream objectInputStream = new ObjectInputStream(byteArrayInputStream);
-        return ((CraftAccount) objectInputStream.readObject());
+    @Nullable
+    public static CraftAccount deserialize(byte[] bytes) {
+        try {
+            String dataStr = new String(bytes, StandardCharsets.UTF_8);
+            Map<String , Map<String, String>> data = GSON.fromJson(dataStr, TYPE);
+            Map<String, String> properties = data.get("properties");
+            Map<String,String> balanceData = data.get("balanceData");
+            UUID uuid = UUID.fromString(properties.get("uuid"));
+            String identifier = properties.get("identifier");
+            boolean isVirtual = properties.get("isVirtual").equals("true");
+            CraftAccount account = isVirtual ? new CraftVirtualAccount(identifier, uuid) : new CraftAccount(uuid);
+            Map<Currency, BigDecimal> balMap = new ConcurrentHashMap<>();
+            for (Map.Entry<String, String> entry : balanceData.entrySet()) {
+                for (CraftCurrency currency : ConfigLoader.instance.getConfig().currencies) {
+                    if (entry.getKey().equals(currency.toPlain())){
+                        balMap.put(currency, new BigDecimal(entry.getValue()));
+                    }
+                }
+            }
+            account.balanceMap = balMap;
+            return account;
+        }catch (Exception e){
+            e.printStackTrace();
+            return null;
+        }
     }
 
     @Override

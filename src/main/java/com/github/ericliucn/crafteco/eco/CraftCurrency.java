@@ -1,5 +1,6 @@
 package com.github.ericliucn.crafteco.eco;
 
+import com.github.ericliucn.crafteco.utils.Util;
 import net.kyori.adventure.text.Component;
 import org.spongepowered.api.data.persistence.DataContainer;
 import org.spongepowered.api.data.persistence.DataView;
@@ -58,8 +59,7 @@ public class CraftCurrency implements Currency {
         return this.defaultValue;
     }
 
-    public DataContainer toContainer(){
-        DataContainer container = DataContainer.createNew();
-        container.createView().getBy
+    public String toPlain(){
+        return Util.toPlain(this.displayName);
     }
 }
