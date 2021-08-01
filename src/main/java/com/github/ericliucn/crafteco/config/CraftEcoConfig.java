@@ -30,7 +30,8 @@ public class CraftEcoConfig {
     @ConfigSerializable
     public static class DatabaseConfig {
 
-        @Setting(value = "Database Type")
+        @Comment("Possible value: sqlite/mysql")
+        @Setting(value = "Database")
         public String dbType = "sqlite";
 
         @Setting(value = "root")
@@ -45,11 +46,11 @@ public class CraftEcoConfig {
         @Setting(value = "port")
         public String port = "3389";
 
-        @Setting(value = "database name")
+        @Setting(value = "database_name")
         public String databaseName = "crafteco";
 
-        @Setting(value = "table name")
-        public String tableName = "main_data";
+        @Setting(value = "table_name")
+        public String tableName = "eco_data";
 
     }
 }

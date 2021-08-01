@@ -10,6 +10,7 @@ import org.spongepowered.configurate.serialize.TypeSerializer;
 
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
+import java.util.Objects;
 
 public class CraftCurrencySerializer implements TypeSerializer<CraftCurrency> {
 
@@ -19,7 +20,7 @@ public class CraftCurrencySerializer implements TypeSerializer<CraftCurrency> {
         Component pluralDisplayName = node.node("PluralDisplayName").get(TypeToken.get(Component.class));
         Component symbol = node.node("Symbol").get(TypeToken.get(Component.class));
         boolean isDefault = node.node("isDefault").getBoolean();
-        BigDecimal defaultValue = node.node("DefaultValue").get(BigDecimal.class);
+        BigDecimal defaultValue = new BigDecimal(Objects.requireNonNull(node.node("DefaultValue").getString()));
         return new CraftCurrency(displayName, pluralDisplayName, symbol, isDefault, defaultValue);
     }
 
@@ -30,6 +31,6 @@ public class CraftCurrencySerializer implements TypeSerializer<CraftCurrency> {
         node.node("PluralDisplayName").set(Component.class, obj.pluralDisplayName());
         node.node("Symbol").set(Component.class, obj.symbol());
         node.node("isDefault").set(obj.isDefault());
-        node.node("DefaultValue").set(obj.defaultValue());
+        node.node("DefaultValue").set(obj.defaultValue().toString());
     }
 }
