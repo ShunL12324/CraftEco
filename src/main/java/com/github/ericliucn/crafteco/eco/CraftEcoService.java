@@ -20,8 +20,7 @@ public class CraftEcoService implements EconomyService {
     public static CraftEcoService instance;
 
     private final CraftEcoConfig config;
-    private final Map<UUID, CraftAccount> uniqueAccounts = new ConcurrentHashMap<>();
-    private final Map<String, CraftVirtualAccount> virtualAccounts = new ConcurrentHashMap<>();
+    private final Map<UUID, CraftAccount> allAccount = new ConcurrentHashMap<>();
 
     public CraftEcoService(){
         instance = this;
@@ -30,28 +29,19 @@ public class CraftEcoService implements EconomyService {
     }
 
     public void loadCache(){
-        uniqueAccounts.clear();
-        virtualAccounts.clear();
+        allAccount.clear();
         for (CraftAccount craftAccount : DBLoader.instance.getDbHandler().getAllAccount()) {
             for (CraftCurrency currency : config.currencies) {
                 if (!craftAccount.hasBalance(currency)){
                     craftAccount.resetBalance(currency);
                 }
             }
-            if (craftAccount instanceof CraftVirtualAccount){
-                virtualAccounts.put(craftAccount.identifier(), (CraftVirtualAccount) craftAccount);
-            }else {
-                uniqueAccounts.put(craftAccount.uniqueId(), craftAccount);
-            }
+            allAccount.put(craftAccount.uniqueId(), craftAccount);
         }
     }
 
     public void saveCache(){
-        for (CraftVirtualAccount value : this.virtualAccounts.values()) {
-            DBLoader.instance.getDbHandler().saveAccount(value);
-        }
-
-        for (CraftAccount value : this.uniqueAccounts.values()) {
+        for (CraftAccount value : this.allAccount.values()) {
             DBLoader.instance.getDbHandler().saveAccount(value);
         }
     }
@@ -63,12 +53,12 @@ public class CraftEcoService implements EconomyService {
 
     @Override
     public boolean hasAccount(UUID uuid) {
-        return uniqueAccounts.containsKey(uuid);
+        return allAccount.containsKey(uuid);
     }
 
     @Override
     public boolean hasAccount(String identifier) {
-        return virtualAccounts.containsKey(identifier);
+        return allAccount.values().stream().map(CraftAccount::identifier).anyMatch(s -> s.equals(identifier));
     }
 
     @Override
@@ -80,10 +70,10 @@ public class CraftEcoService implements EconomyService {
                 account.resetBalance(currency);
             }
             DBLoader.instance.getDbHandler().saveAccount(account);
-            this.uniqueAccounts.put(uuid, account);
+            this.allAccount.put(uuid, account);
             return Optional.of(account);
         }else {
-            return Optional.ofNullable(uniqueAccounts.get(uuid));
+            return Optional.ofNullable(allAccount.get(uuid));
         }
     }
 
@@ -97,16 +87,19 @@ public class CraftEcoService implements EconomyService {
                 account.resetBalance(currency);
             }
             DBLoader.instance.getDbHandler().saveAccount(account);
-            this.virtualAccounts.put(account.identifier(), account);
+            this.allAccount.put(uuid, account);
             return Optional.of(account);
         }else {
-            return Optional.ofNullable(virtualAccounts.get(identifier));
+            return allAccount.values().stream()
+                    .filter(acc -> acc.identifier().equals(identifier))
+                    .map(acc -> ((Account) acc))
+                    .findFirst();
         }
     }
 
     @Override
     public Stream<UniqueAccount> streamUniqueAccounts() {
-        return uniqueAccounts.values().stream().map(craftAccount -> craftAccount);
+        return allAccount.values().stream().filter(acc -> !acc.isVirtual()).map(acc -> acc);
     }
 
     @Override
@@ -116,7 +109,7 @@ public class CraftEcoService implements EconomyService {
 
     @Override
     public Stream<VirtualAccount> streamVirtualAccounts() {
-        return virtualAccounts.values().stream().map(account -> account);
+        return allAccount.values().stream().filter(CraftAccount::isVirtual).map(acc -> ((CraftVirtualAccount) acc));
     }
 
     @Override
@@ -127,7 +120,7 @@ public class CraftEcoService implements EconomyService {
     @Override
     public AccountDeletionResultType deleteAccount(UUID uuid) {
         try {
-            this.uniqueAccounts.remove(uuid);
+            this.allAccount.remove(uuid);
             DBLoader.instance.getDbHandler().deleteAccount(uuid);
             return AccountDeletionResultTypes.SUCCESS.get();
         }catch (Exception e){
@@ -139,8 +132,14 @@ public class CraftEcoService implements EconomyService {
     @Override
     public AccountDeletionResultType deleteAccount(String identifier) {
         try {
-            DBLoader.instance.getDbHandler().deleteAccount(virtualAccounts.get(identifier).uniqueId());
-            this.virtualAccounts.remove(identifier);
+            allAccount.values().stream()
+                    .filter(acc -> acc.identifier().equals(identifier))
+                    .forEach(acc -> {
+                        if (acc.identifier().equals(identifier)){
+                            allAccount.remove(acc.uniqueId());
+                            deleteAccount(acc.uniqueId());
+                        }
+                    });
             return AccountDeletionResultTypes.SUCCESS.get();
         }catch (Exception e){
             e.printStackTrace();
