@@ -85,6 +85,29 @@ public class Commands {
             .terminal(true)
             .build();
 
+    public static Command.Parameterized bal = Command.builder()
+            .addParameter(userPara)
+            .addParameter(currencyPara)
+            .executor(context -> {
+                try {
+                    User user = null;
+                    if (context.cause().root() instanceof SystemSubject){
+                        user = context.requireOne(userPara);
+                    }else if (context.cause().root() instanceof User){
+                        user = ((User) context.cause().root());
+                    }
+                    if(user == null) return CommandResult.error(MessageLoader.instance.getMessage("transaction.failed"));
+                    CraftCurrency currency = context.one(currencyPara).orElse(((CraftCurrency) CraftEcoService.instance.defaultCurrency()));
+                    User finalUser = user;
+                    user.player().ifPresent(serverPlayer -> serverPlayer.sendMessage(Util.toComponent("Balance: " + CraftEcoService.instance.findOrCreateAccount(finalUser.uniqueId()).get().balance(currency))));
+                    return CommandResult.success();
+                }catch (Exception e){
+                    e.printStackTrace();
+                    return CommandResult.error(MessageLoader.instance.getMessage("transaction.failed"));
+                }
+            })
+            .build();
+
     public static Command.Parameterized test = Command.builder()
             .executor(context -> {
                 try {
