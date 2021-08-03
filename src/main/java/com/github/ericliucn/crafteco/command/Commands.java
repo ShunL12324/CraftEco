@@ -6,6 +6,10 @@ import com.github.ericliucn.crafteco.eco.CraftCurrency;
 import com.github.ericliucn.crafteco.eco.CraftEcoService;
 import com.github.ericliucn.crafteco.eco.account.CraftAccount;
 import com.github.ericliucn.crafteco.handler.DBLoader;
+import com.github.ericliucn.crafteco.utils.Util;
+import net.kyori.adventure.identity.Identified;
+import net.kyori.adventure.identity.Identity;
+import org.spongepowered.api.SystemSubject;
 import org.spongepowered.api.command.Command;
 import org.spongepowered.api.command.CommandResult;
 import org.spongepowered.api.command.parameter.Parameter;
@@ -14,8 +18,10 @@ import org.spongepowered.api.entity.living.player.server.ServerPlayer;
 import org.spongepowered.api.service.economy.account.UniqueAccount;
 import org.spongepowered.api.service.economy.transaction.ResultType;
 import org.spongepowered.api.service.economy.transaction.TransactionResult;
+import org.spongepowered.api.service.permission.Subject;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 public class Commands {
 
@@ -26,6 +32,7 @@ public class Commands {
             .build();
     static Parameter.Value<CraftCurrency> currencyPara = Parameter.builder(CraftCurrency.class)
             .key("currency")
+            .optional()
             .addParser(new CraftCurrencyParser())
             .completer(new CraftCurrencyParser.CraftCurrencyCompleter())
             .build();
@@ -56,11 +63,33 @@ public class Commands {
             .executionRequirements(commandCause -> (commandCause.root() instanceof ServerPlayer))
             .build();
 
+    public static Command.Parameterized adminPay = Command.builder()
+            .permission("crafteco.command.adminpay")
+            .addParameter(userPara)
+            .addParameter(amountPara)
+            .addParameter(currencyPara)
+            .executor(context -> {
+                try {
+                    User target = context.requireOne(userPara);
+                    BigDecimal amount = context.requireOne(amountPara);
+                    CraftCurrency currency = context.one(currencyPara).orElse((CraftCurrency) CraftEcoService.instance.defaultCurrency());
+                    CraftEcoService.instance.findOrCreateAccount(target.uniqueId()).ifPresent(acc -> {
+                        acc.deposit(currency, amount);
+                    });
+                    return CommandResult.builder().result(1).error(MessageLoader.instance.getMessage("transaction.success")).build();
+                }catch (Exception e){
+                    e.printStackTrace();
+                    return CommandResult.error(MessageLoader.instance.getMessage("transaction.failed"));
+                }
+            })
+            .terminal(true)
+            .build();
+
     public static Command.Parameterized test = Command.builder()
             .executor(context -> {
                 try {
                     //create account
-                    Main.instance.getCraftEcoService().findOrCreateAccount(((ServerPlayer) context.cause().root()).uniqueId());
+                    Main.instance.getCraftEcoService().findOrCreateAccount(UUID.randomUUID());
                     Main.instance.getCraftEcoService().saveCache();
                 }catch (Exception e){
                     e.printStackTrace();

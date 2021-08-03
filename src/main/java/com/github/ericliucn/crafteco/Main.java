@@ -77,6 +77,7 @@ public class Main {
     public void onRegisterCommands(final RegisterCommandEvent<Command.Parameterized> event) {
         event.register(this.container, Commands.pay, "pay");
         event.register(this.container, Commands.test, "test");
+        event.register(this.container, Commands.adminPay, "adminpay");
     }
 
     public void printLog(Level level, String content){
