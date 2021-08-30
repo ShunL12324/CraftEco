@@ -149,4 +149,10 @@ public class CraftEcoService implements EconomyService {
         }
     }
 
+    public Optional<Currency> getCurrency(String name){
+        return ConfigLoader.instance.getConfig().currencies.stream()
+                .filter(cur -> cur.toPlain().equalsIgnoreCase(name)).map(craftCurrency -> ((Currency) craftCurrency))
+                .findFirst();
+    }
+
 }

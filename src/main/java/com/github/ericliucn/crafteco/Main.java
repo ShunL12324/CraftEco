@@ -3,17 +3,35 @@ package com.github.ericliucn.crafteco;
 import com.github.ericliucn.crafteco.command.Commands;
 import com.github.ericliucn.crafteco.config.ConfigLoader;
 import com.github.ericliucn.crafteco.config.MessageLoader;
+import com.github.ericliucn.crafteco.eco.CraftCurrency;
 import com.github.ericliucn.crafteco.eco.CraftEcoService;
 import com.github.ericliucn.crafteco.eco.CraftResult;
 import com.github.ericliucn.crafteco.handler.DBLoader;
+import com.github.ericliucn.crafteco.handler.EventHandler;
+import com.github.ericliucn.crafteco.handler.PapiHandler;
 import com.google.inject.Inject;
+import net.kyori.adventure.audience.Audience;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextReplacementConfig;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.Logger;
+import org.spongepowered.api.ResourceKey;
 import org.spongepowered.api.Server;
+import org.spongepowered.api.Sponge;
 import org.spongepowered.api.command.Command;
 import org.spongepowered.api.config.ConfigDir;
+import org.spongepowered.api.entity.living.player.server.ServerPlayer;
+import org.spongepowered.api.event.EventContextKeys;
 import org.spongepowered.api.event.Listener;
+import org.spongepowered.api.event.filter.cause.First;
 import org.spongepowered.api.event.lifecycle.*;
+import org.spongepowered.api.event.message.AudienceMessageEvent;
+import org.spongepowered.api.event.message.MessageEvent;
+import org.spongepowered.api.event.message.PlayerChatEvent;
+import org.spongepowered.api.placeholder.PlaceholderComponent;
+import org.spongepowered.api.placeholder.PlaceholderContext;
+import org.spongepowered.api.placeholder.PlaceholderParser;
+import org.spongepowered.api.registry.RegistryTypes;
 import org.spongepowered.api.service.economy.EconomyService;
 import org.spongepowered.plugin.PluginContainer;
 import org.spongepowered.plugin.jvm.Plugin;
@@ -51,7 +69,6 @@ public class Main {
         new ConfigLoader(configDir);
         new MessageLoader(configDir);
         new DBLoader(configDir);
-        craftEcoService = new CraftEcoService();
     }
 
     @Listener
@@ -59,13 +76,19 @@ public class Main {
     }
 
     @Listener
+    public void onServerStarted(final StartedEngineEvent<Server> event){
+        new EventHandler();
+    }
+
+    @Listener
     public void onRegisterService(final ProvideServiceEvent<EconomyService> event){
+        craftEcoService = new CraftEcoService();
         event.suggest(() -> craftEcoService);
     }
 
     @Listener
     public void onServerStopping(final StoppingEngineEvent<Server> event) {
-
+        CraftEcoService.instance.saveCache();
     }
 
     @Listener
@@ -75,10 +98,39 @@ public class Main {
 
     @Listener
     public void onRegisterCommands(final RegisterCommandEvent<Command.Parameterized> event) {
-        event.register(this.container, Commands.pay, "pay");
-        event.register(this.container, Commands.test, "test");
-        event.register(this.container, Commands.adminPay, "adminpay");
+        new Commands(event);
     }
+
+    @Listener
+    public void onRegisterTransactionType(final RegisterRegistryValueEvent.GameScoped event){
+        RegisterRegistryValueEvent.RegistryStep<PlaceholderParser> registry = event.registry(RegistryTypes.PLACEHOLDER_PARSER);
+        registry.register(ResourceKey.of(this.container, "papi"), PapiHandler.BALANCE);
+    }
+
+    @Listener
+    public void onMessage(final MessageEvent event, @First ServerPlayer player){
+        Component message = event.message().replaceText(TextReplacementConfig.builder()
+                .replacement(PlaceholderComponent.builder()
+                        .parser(PapiHandler.BALANCE)
+                        .context(PlaceholderContext.builder()
+                                .associatedObject(player)
+                                .build())
+                        .build().asComponent())
+                .match("%balance%").build());
+        for (CraftCurrency currency : ConfigLoader.instance.getConfig().currencies) {
+            message = message.replaceText(TextReplacementConfig.builder()
+                    .replacement(PlaceholderComponent.builder()
+                            .parser(PapiHandler.BALANCE)
+                            .context(PlaceholderContext.builder()
+                                    .associatedObject(player)
+                                    .argumentString(currency.toPlain())
+                                    .build())
+                            .build().asComponent())
+                    .match("%balance_" + currency.toPlain() +"%").build());
+        }
+        event.setMessage(message);
+    }
+
 
     public void printLog(Level level, String content){
         this.logger.log(level, content);

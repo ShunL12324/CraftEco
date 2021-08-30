@@ -1,9 +1,10 @@
 package com.github.ericliucn.crafteco.command;
 
-import com.github.ericliucn.crafteco.Main;
 import com.github.ericliucn.crafteco.config.ConfigLoader;
 import com.github.ericliucn.crafteco.eco.CraftCurrency;
 import com.github.ericliucn.crafteco.utils.Util;
+import io.leangen.geantyref.TypeToken;
+import net.kyori.adventure.key.Key;
 import org.spongepowered.api.command.CommandCompletion;
 import org.spongepowered.api.command.exception.ArgumentParseException;
 import org.spongepowered.api.command.parameter.ArgumentReader;
@@ -20,7 +21,6 @@ class CraftCurrencyParser implements ValueParser<CraftCurrency> {
 
     @Override
     public Optional<? extends CraftCurrency> parseValue(Parameter.Key<? super CraftCurrency> parameterKey, ArgumentReader.Mutable reader, CommandContext.Builder context) throws ArgumentParseException {
-        reader.skipWhitespace();
         String currencyName = reader.parseString();
         for (CraftCurrency currency : ConfigLoader.instance.getConfig().currencies) {
             if (Util.toPlain(currency.displayName()).equalsIgnoreCase(currencyName)){

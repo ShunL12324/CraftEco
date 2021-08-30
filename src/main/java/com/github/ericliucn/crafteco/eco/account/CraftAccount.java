@@ -1,21 +1,13 @@
 package com.github.ericliucn.crafteco.eco.account;
 
-import com.github.ericliucn.crafteco.Main;
 import com.github.ericliucn.crafteco.config.ConfigLoader;
 import com.github.ericliucn.crafteco.eco.CraftCurrency;
-import com.github.ericliucn.crafteco.eco.CraftEcoService;
 import com.github.ericliucn.crafteco.eco.CraftResult;
 import com.github.ericliucn.crafteco.utils.Util;
 import com.google.gson.Gson;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
 import io.leangen.geantyref.TypeToken;
-import javafx.util.Pair;
 import net.kyori.adventure.text.Component;
 import org.jetbrains.annotations.Nullable;
-import org.spongepowered.api.data.persistence.DataContainer;
-import org.spongepowered.api.data.persistence.DataFormats;
-import org.spongepowered.api.data.persistence.DataQuery;
 import org.spongepowered.api.event.Cause;
 import org.spongepowered.api.service.context.Context;
 import org.spongepowered.api.service.economy.Currency;
@@ -25,11 +17,8 @@ import org.spongepowered.api.service.economy.transaction.ResultType;
 import org.spongepowered.api.service.economy.transaction.TransactionResult;
 import org.spongepowered.api.service.economy.transaction.TransactionTypes;
 import org.spongepowered.api.service.economy.transaction.TransferResult;
-import org.spongepowered.configurate.CommentedConfigurationNode;
-import org.spongepowered.configurate.ConfigurationNode;
-import org.spongepowered.configurate.hocon.HoconConfigurationLoader;
 
-import java.io.*;
+import java.io.IOException;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -179,6 +168,15 @@ public class CraftAccount implements Account, UniqueAccount {
     @Override
     public TransactionResult withdraw(Currency currency, BigDecimal amount) {
         if (currency instanceof CraftCurrency){
+            if (balance(currency).compareTo(amount) < 0){
+                return CraftResult.builder()
+                        .currency(((CraftCurrency) currency))
+                        .account(this)
+                        .result(ResultType.ACCOUNT_NO_FUNDS)
+                        .type(TransactionTypes.WITHDRAW.get())
+                        .amount(amount)
+                        .build();
+            }
             this.balanceMap.put(currency, balance(currency).subtract(amount));
             return CraftResult.builder()
                     .currency((CraftCurrency) currency)
@@ -206,8 +204,9 @@ public class CraftAccount implements Account, UniqueAccount {
     public TransferResult transfer(Account to, Currency currency, BigDecimal amount) {
         if ((to instanceof CraftAccount) && (currency instanceof CraftCurrency)){
             CraftResult wResult = (CraftResult) withdraw(currency, amount);
+            if (!wResult.result().equals(ResultType.SUCCESS)) return wResult.toTransferResult(((CraftAccount) to));
             CraftResult dResult = (CraftResult) to.deposit(currency, amount);
-            if (wResult.result().equals(ResultType.SUCCESS) && dResult.result().equals(ResultType.SUCCESS)){
+            if (dResult.result().equals(ResultType.SUCCESS)){
                 return wResult.toBuilder().type(TransactionTypes.TRANSFER.get()).build().toTransferResult(((CraftAccount) to));
             }else {
                 throw new IllegalStateException("Transfer failed!");
