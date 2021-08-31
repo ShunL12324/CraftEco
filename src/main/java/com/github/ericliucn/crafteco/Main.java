@@ -107,6 +107,8 @@ public class Main {
         registry.register(ResourceKey.of(this.container, "papi"), PapiHandler.BALANCE);
     }
 
+
+
     @Listener
     public void onMessage(final MessageEvent event, @First ServerPlayer player){
         Component message = event.message().replaceText(TextReplacementConfig.builder()
