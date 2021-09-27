@@ -1,4 +1,4 @@
-package com.github.ericliucn.crafteco.handler;
+package com.github.ericliucn.crafteco.handler.database;
 
 import com.github.ericliucn.crafteco.eco.account.CraftAccount;
 

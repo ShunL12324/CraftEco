@@ -2,39 +2,33 @@ package com.github.ericliucn.crafteco;
 
 import com.github.ericliucn.crafteco.command.Commands;
 import com.github.ericliucn.crafteco.config.ConfigLoader;
-import com.github.ericliucn.crafteco.config.MessageLoader;
 import com.github.ericliucn.crafteco.eco.CraftCurrency;
 import com.github.ericliucn.crafteco.eco.CraftEcoService;
 import com.github.ericliucn.crafteco.eco.CraftResult;
-import com.github.ericliucn.crafteco.handler.DBLoader;
+import com.github.ericliucn.crafteco.handler.database.DBLoader;
 import com.github.ericliucn.crafteco.handler.EventHandler;
 import com.github.ericliucn.crafteco.handler.PapiHandler;
 import com.google.inject.Inject;
-import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextReplacementConfig;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.Logger;
 import org.spongepowered.api.ResourceKey;
 import org.spongepowered.api.Server;
-import org.spongepowered.api.Sponge;
 import org.spongepowered.api.command.Command;
 import org.spongepowered.api.config.ConfigDir;
 import org.spongepowered.api.entity.living.player.server.ServerPlayer;
-import org.spongepowered.api.event.EventContextKeys;
 import org.spongepowered.api.event.Listener;
 import org.spongepowered.api.event.filter.cause.First;
 import org.spongepowered.api.event.lifecycle.*;
-import org.spongepowered.api.event.message.AudienceMessageEvent;
 import org.spongepowered.api.event.message.MessageEvent;
-import org.spongepowered.api.event.message.PlayerChatEvent;
 import org.spongepowered.api.placeholder.PlaceholderComponent;
 import org.spongepowered.api.placeholder.PlaceholderContext;
 import org.spongepowered.api.placeholder.PlaceholderParser;
 import org.spongepowered.api.registry.RegistryTypes;
 import org.spongepowered.api.service.economy.EconomyService;
 import org.spongepowered.plugin.PluginContainer;
-import org.spongepowered.plugin.jvm.Plugin;
+import org.spongepowered.plugin.builtin.jvm.Plugin;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -67,7 +61,6 @@ public class Main {
     @Listener
     public void onConstructPlugin(final ConstructPluginEvent event) throws IOException {
         new ConfigLoader(configDir);
-        new MessageLoader(configDir);
         new DBLoader(configDir);
     }
 
@@ -106,8 +99,6 @@ public class Main {
         RegisterRegistryValueEvent.RegistryStep<PlaceholderParser> registry = event.registry(RegistryTypes.PLACEHOLDER_PARSER);
         registry.register(ResourceKey.of(this.container, "papi"), PapiHandler.BALANCE);
     }
-
-
 
     @Listener
     public void onMessage(final MessageEvent event, @First ServerPlayer player){

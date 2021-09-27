@@ -1,14 +1,21 @@
 package com.github.ericliucn.crafteco.eco.account;
 
 import com.github.ericliucn.crafteco.config.ConfigLoader;
+import com.github.ericliucn.crafteco.config.CraftEcoConfig;
 import com.github.ericliucn.crafteco.eco.CraftCurrency;
+import com.github.ericliucn.crafteco.eco.CraftEcoService;
 import com.github.ericliucn.crafteco.eco.CraftResult;
+import com.github.ericliucn.crafteco.handler.PapiHandler;
+import com.github.ericliucn.crafteco.utils.Contexts;
 import com.github.ericliucn.crafteco.utils.Util;
 import com.google.gson.Gson;
 import io.leangen.geantyref.TypeToken;
 import net.kyori.adventure.text.Component;
 import org.jetbrains.annotations.Nullable;
+import org.spongepowered.api.Sponge;
+import org.spongepowered.api.entity.living.player.server.ServerPlayer;
 import org.spongepowered.api.event.Cause;
+import org.spongepowered.api.event.EventContext;
 import org.spongepowered.api.service.context.Context;
 import org.spongepowered.api.service.economy.Currency;
 import org.spongepowered.api.service.economy.account.Account;
@@ -17,16 +24,15 @@ import org.spongepowered.api.service.economy.transaction.ResultType;
 import org.spongepowered.api.service.economy.transaction.TransactionResult;
 import org.spongepowered.api.service.economy.transaction.TransactionTypes;
 import org.spongepowered.api.service.economy.transaction.TransferResult;
+import org.spongepowered.api.service.pagination.PaginationList;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 
 public class CraftAccount implements Account, UniqueAccount {
 
@@ -42,6 +48,13 @@ public class CraftAccount implements Account, UniqueAccount {
 
     @Override
     public Component displayName() {
+        if (Sponge.server().userManager().exists(this.uniqueID)){
+            try {
+                Sponge.server().userManager().load(this.uniqueID).get().get().name();
+            } catch (InterruptedException | ExecutionException e) {
+                e.printStackTrace();
+            }
+        }
         return Util.toComponent(this.identifier());
     }
 
@@ -203,13 +216,9 @@ public class CraftAccount implements Account, UniqueAccount {
     @Override
     public TransferResult transfer(Account to, Currency currency, BigDecimal amount) {
         if ((to instanceof CraftAccount) && (currency instanceof CraftCurrency)){
-            CraftResult wResult = (CraftResult) withdraw(currency, amount);
-            if (!wResult.result().equals(ResultType.SUCCESS)) return wResult.toTransferResult(((CraftAccount) to));
-            CraftResult dResult = (CraftResult) to.deposit(currency, amount);
-            if (dResult.result().equals(ResultType.SUCCESS)){
-                return wResult.toBuilder().type(TransactionTypes.TRANSFER.get()).build().toTransferResult(((CraftAccount) to));
-            }else {
-                throw new IllegalStateException("Transfer failed!");
+            CraftEcoService service = CraftEcoService.instance;
+            if (balance(currency).compareTo(amount) < 0){
+                if (ConfigLoader.instance.getConfig())
             }
         }else {
             throw new IllegalStateException("The currency must be CraftCurrency!");
@@ -218,12 +227,67 @@ public class CraftAccount implements Account, UniqueAccount {
 
     @Override
     public TransferResult transfer(Account to, Currency currency, BigDecimal amount, Set<Context> contexts) {
-        return ((CraftResult.CraftTransferResult) transfer(to, currency, amount)).toBuilder().contexts(contexts).build().toTransferResult(((CraftAccount) to));
+        return ((CraftResult.CraftTransferResult) transfer(to, currency, amount))
+                .toBuilder().contexts(contexts).build().toTransferResult(((CraftAccount) to));
     }
 
     @Override
     public TransferResult transfer(Account to, Currency currency, BigDecimal amount, Cause cause) {
-        return ((CraftResult.CraftTransferResult) transfer(to, currency, amount)).toBuilder().cause(cause).build().toTransferResult(((CraftAccount) to));
+        TransferResult result = ((CraftResult.CraftTransferResult) transfer(to, currency, amount))
+                .toBuilder().cause(cause).build().toTransferResult(((CraftAccount) to));
+        // if the transfer triggered by a player
+        if (cause.root() instanceof ServerPlayer){
+            EventContext eventContext = cause.context();
+            switch (result.result()){
+                // if success
+                case SUCCESS:
+                    Sponge.server().player(eventContext.get(Contexts.TRANSFER_PAYEE).get()).ifPresent(player -> {
+                        Component message = PapiHandler.message(
+                                ConfigLoader.instance.getConfig().messages.transfer_success_payee,
+                                result,
+                                player,
+                                Util.toPlain(result.currency().displayName())
+                        );
+                        player.sendMessage(message);
+                    });
+
+                    Sponge.server().player(eventContext.get(Contexts.TRANSFER_RECEIVER).get()).ifPresent(player -> {
+                        Component message = PapiHandler.message(
+                                ConfigLoader.instance.getConfig().messages.transfer_success_receiver,
+                                result,
+                                player,
+                                Util.toPlain(result.currency().displayName())
+                        );
+                        player.sendMessage(message);
+                    });
+                    break;
+                // if fail
+                case FAILED:
+                    Sponge.server().player(eventContext.get(Contexts.TRANSFER_PAYEE).get()).ifPresent(player -> {
+                        Component message = PapiHandler.message(
+                                ConfigLoader.instance.getConfig().messages.transfer_failed,
+                                result,
+                                player,
+                                Util.toPlain(result.currency().displayName())
+                        );
+                        player.sendMessage(message);
+                    });
+                    break;
+                // no funds
+                case ACCOUNT_NO_FUNDS:
+                    Sponge.server().player(eventContext.get(Contexts.TRANSFER_PAYEE).get()).ifPresent(player -> {
+                        Component message = PapiHandler.message(
+                                ConfigLoader.instance.getConfig().messages.transfer_failed_no_funds,
+                                result,
+                                player,
+                                Util.toPlain(result.currency().displayName())
+                        );
+                        player.sendMessage(message);
+                    });
+                    break;
+            }
+        }
+        return result;
     }
 
 

@@ -1,9 +1,9 @@
 package com.github.ericliucn.crafteco.command;
 
 import com.github.ericliucn.crafteco.Main;
-import com.github.ericliucn.crafteco.config.MessageLoader;
 import com.github.ericliucn.crafteco.eco.CraftCurrency;
 import com.github.ericliucn.crafteco.eco.CraftEcoService;
+import com.github.ericliucn.crafteco.utils.Contexts;
 import com.github.ericliucn.crafteco.utils.Util;
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
@@ -12,55 +12,81 @@ import org.spongepowered.api.command.Command;
 import org.spongepowered.api.command.CommandResult;
 import org.spongepowered.api.command.parameter.Parameter;
 import org.spongepowered.api.entity.living.player.server.ServerPlayer;
+import org.spongepowered.api.event.Cause;
+import org.spongepowered.api.event.EventContext;
+import org.spongepowered.api.event.EventContextKey;
+import org.spongepowered.api.event.EventContextKeys;
 import org.spongepowered.api.event.lifecycle.RegisterCommandEvent;
+import org.spongepowered.api.service.context.Context;
+import org.spongepowered.api.service.economy.Currency;
 import org.spongepowered.api.service.economy.account.UniqueAccount;
 import org.spongepowered.api.service.economy.transaction.ResultType;
 import org.spongepowered.api.service.economy.transaction.TransactionResult;
 import org.spongepowered.api.service.economy.transaction.TransferResult;
 
 import java.math.BigDecimal;
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 public class Commands {
 
     public Commands(final RegisterCommandEvent<Command.Parameterized> event){
 
-        final Parameter.Value<UUID> userPara = Parameter.user().key("user").optional().build();
 
-        final Parameter.Key<CraftCurrency> currencyKey = Parameter.key("currency", CraftCurrency.class);
-        final Parameter.Value<CraftCurrency> currencyPara = Parameter.builder(CraftCurrency.class)
-                .key(currencyKey)
+        // user parameter value
+        final Parameter.Value<UUID> userPara = Parameter.user().key("user").optional().build();
+        // currency parameter value
+        final Parameter.Value<Currency> currencyPara = Parameter.builder(Currency.class)
+                .key("currency")
                 .optional()
                 .addParser(new CraftCurrencyParser())
                 .completer(new CraftCurrencyParser.CraftCurrencyCompleter())
                 .build();
-
+        // amount parameter value
         final Parameter.Value<BigDecimal> amountPara = Parameter.bigDecimal().key("amount").build();
 
+        // The following commands are user commands
+        // which means they are not sub commands of `eco`
+
+        // pay command
         final Command.Parameterized pay = Command.builder()
                 .permission("crafteco.command.pay")
-                .addParameter(userPara)
+                .addParameter(
+                        // required user para
+                        Parameter.user().build()
+                )
                 .addParameter(amountPara)
                 .addParameter(currencyPara)
                 .executor(context -> {
                     CraftEcoService service = CraftEcoService.instance;
                     ServerPlayer source = ((ServerPlayer) context.cause().root());
                     UUID uuid = context.requireOne(userPara);
+                    // we get the source account and target account
                     UniqueAccount sourceAcc = service.findOrCreateAccount(source.uniqueId()).get();
                     UniqueAccount targetAcc = service.findOrCreateAccount(uuid).get();
-                    TransferResult transferResult = sourceAcc.transfer(targetAcc, context.one(currencyKey)
-                            .orElse(((CraftCurrency) service.defaultCurrency())), context.requireOne(amountPara));
-                    if (transferResult.result().equals(ResultType.ACCOUNT_NO_FUNDS)){
-                        source.sendMessage(Util.toComponent("&4你没有足够的钱"));
-                    }else if (transferResult.result().equals(ResultType.FAILED)){
-                        source.sendMessage(Util.toComponent("&4交易失败"));
-                    }else if (transferResult.result().equals(ResultType.SUCCESS)){
-                        source.sendMessage(Util.toComponent("&a交易成功"));
-                    }
+                    // we get the currency using, if no specific currency we are going use default currency
+                    Currency currency = context.one(currencyPara).orElse(service.defaultCurrency());
+                    // get amount
+                    BigDecimal amount = context.requireOne(amountPara);
+                    // set cause
+                    EventContext contexts = EventContext.builder()
+                            .add(Contexts.TRANSFER_PAYEE, source.uniqueId())
+                            .add(Contexts.TRANSFER_RECEIVER, uuid)
+                            .build();
+                    Cause cause = Cause.builder()
+                            .append(source)
+                            .build(contexts);
+                    // try transfer
+                    sourceAcc.transfer(targetAcc, currency, amount, cause);
+
                     return CommandResult.success();
                 })
-                .executionRequirements(commandCause -> (commandCause.root() instanceof ServerPlayer))
+                .executionRequirements(
+                        // the command cause root object must be a player not from console
+                        commandCause -> (commandCause.root() instanceof ServerPlayer)
+                )
                 .build();
 
         final Command.Parameterized adminPay = Command.builder()

@@ -1,4 +1,4 @@
-package com.github.ericliucn.crafteco.handler;
+package com.github.ericliucn.crafteco.handler.database;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;

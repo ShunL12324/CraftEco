@@ -1,8 +1,10 @@
-package com.github.ericliucn.crafteco.handler;
+package com.github.ericliucn.crafteco.handler.database;
 
 import com.github.ericliucn.crafteco.config.ConfigLoader;
 import com.github.ericliucn.crafteco.config.CraftEcoConfig;
 import com.github.ericliucn.crafteco.eco.account.CraftAccount;
+import com.github.ericliucn.crafteco.handler.database.DBHandler;
+import com.github.ericliucn.crafteco.handler.database.DataSource;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -16,7 +18,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-public class SqliteHandler implements DBHandler{
+public class SqliteHandler implements DBHandler {
 
     private final DataSource dataSource;
     private final CraftEcoConfig.DatabaseConfig dbConfig;

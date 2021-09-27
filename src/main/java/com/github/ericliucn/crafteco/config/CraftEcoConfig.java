@@ -16,8 +16,13 @@ public class CraftEcoConfig {
     @Comment("Database setting")
     public DatabaseConfig database;
 
+    @Comment("Messages\n" +
+            "")
+    public Messages messages;
+
     public CraftEcoConfig(){
         database = new DatabaseConfig();
+        messages = new Messages();
     }
 
     @Setting(value = "Currencies")
@@ -31,10 +36,10 @@ public class CraftEcoConfig {
     public static class DatabaseConfig {
 
         @Comment("Possible value: sqlite/mysql")
-        @Setting(value = "Database")
+        @Setting(value = "databaseType")
         public String dbType = "sqlite";
 
-        @Setting(value = "root")
+        @Setting(value = "username")
         public String username = "root";
 
         @Setting(value = "password")
@@ -46,11 +51,30 @@ public class CraftEcoConfig {
         @Setting(value = "port")
         public String port = "3389";
 
-        @Setting(value = "database_name")
+        @Setting(value = "databaseName")
         public String databaseName = "crafteco";
 
-        @Setting(value = "table_name")
+        @Setting(value = "tableName")
         public String tableName = "eco_data";
+
+    }
+
+    @ConfigSerializable
+    public static class Messages{
+
+        @Setting
+        public String transfer_failed = "&a向 &4{transfer_target} &a支付 &e{cur_symbol} &4{amount} &a的交易失败了";
+
+        @Setting
+        public String transfer_failed_no_funds = "&a向 &4{transfer_target} &a支付 &e{cur_symbol} &4{amount} &a的交易失败了，\n" +
+                "因为你没有足够的钱";
+
+        @Setting
+        public String transfer_success_receiver = "&a你收到了一笔来自 &4{transfer_source} &a的支付，金额为&e{cur_symbol} &4{amount}";
+
+        @Setting
+        public String transfer_success_payee = "&a你向 &4{transfer_target} &a支付了 &e{cur_symbol} &4{amount}";
+
 
     }
 }

@@ -4,7 +4,7 @@ import com.github.ericliucn.crafteco.config.ConfigLoader;
 import com.github.ericliucn.crafteco.config.CraftEcoConfig;
 import com.github.ericliucn.crafteco.eco.account.CraftAccount;
 import com.github.ericliucn.crafteco.eco.account.CraftVirtualAccount;
-import com.github.ericliucn.crafteco.handler.DBLoader;
+import com.github.ericliucn.crafteco.handler.database.DBLoader;
 import org.spongepowered.api.service.economy.Currency;
 import org.spongepowered.api.service.economy.EconomyService;
 import org.spongepowered.api.service.economy.account.*;

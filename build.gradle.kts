@@ -1,10 +1,10 @@
 import org.spongepowered.gradle.plugin.config.PluginLoaders
-import org.spongepowered.plugin.metadata.PluginDependency
+import org.spongepowered.plugin.metadata.model.PluginDependency
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 
 plugins {
     `java-library`
-    id("org.spongepowered.gradle.plugin") version "1.1.1"
+    id("org.spongepowered.gradle.plugin") version "2.0.0"
     id("com.github.johnrengelman.shadow") version "4.0.4"
 }
 
@@ -22,13 +22,16 @@ dependencies{
 }
 
 sponge {
-    apiVersion("8.0.0")
-    plugin("crafteco") {
-        loader(PluginLoaders.JAVA_PLAIN)
-        displayName("CraftEco")
-        mainClass("com.github.ericliucn.crafteco.Main")
-        description("A eco plugin for sponge api 8")
+    apiVersion("8.0.0-SNAPSHOT")
+    license("MIT")
+    loader {
+        name(PluginLoaders.JAVA_PLAIN)
         version("1.0")
+    }
+    plugin("crafteco") {
+        displayName("CraftEco")
+        entrypoint("com.github.ericliucn.crafteco.Main")
+        description("Economy Service for Sponge API 8")
         links {
             homepage("https://spongepowered.org")
             source("https://spongepowered.org/source")
