@@ -85,12 +85,12 @@ public class CraftAccount implements Account, UniqueAccount {
 
     @Override
     public Map<Currency, BigDecimal> balances(Set<Context> contexts) {
-        return balances();
+        return this.balanceMap;
     }
 
     @Override
     public Map<Currency, BigDecimal> balances(Cause cause) {
-        return balances();
+        return this.balanceMap;
     }
 
     @Override

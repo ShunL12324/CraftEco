@@ -58,7 +58,7 @@ public class PapiHandler {
                 if (context.associatedObject().isPresent() && context.associatedObject().get() instanceof TransferResult){
                     TransferResult result = ((TransferResult) context.associatedObject().get());
                     try {
-                        Optional<User> optionalUser = Sponge.server().userManager().load(result.accountTo().identifier()).get();
+                        Optional<User> optionalUser = Sponge.server().userManager().load(UUID.fromString(result.accountTo().identifier())).get();
                         return Util.toComponent(optionalUser.get().name());
                     } catch (InterruptedException | ExecutionException e) {
                         e.printStackTrace();
@@ -120,7 +120,7 @@ public class PapiHandler {
                 .build();
         TextReplacementConfig replaceCurSymbol =
                 TextReplacementConfig.builder()
-                        .match("{cur_symbol}")
+                        .match("%cur_symbol%")
                         .replacement(
                                 PlaceholderComponent.builder()
                                         .context(resultContext)
@@ -131,7 +131,7 @@ public class PapiHandler {
 
         TextReplacementConfig replaceCurName =
                 TextReplacementConfig.builder()
-                        .match("{cur_name}")
+                        .match("%cur_name%")
                         .replacement(
                                 PlaceholderComponent.builder()
                                         .context(resultContext)
@@ -142,7 +142,7 @@ public class PapiHandler {
 
         TextReplacementConfig replaceAmount =
                 TextReplacementConfig.builder()
-                        .match("{amount}")
+                        .match("%amount%")
                         .replacement(
                                 PlaceholderComponent.builder()
                                         .context(resultContext)
@@ -153,7 +153,7 @@ public class PapiHandler {
 
         TextReplacementConfig replaceTarget =
                 TextReplacementConfig.builder()
-                        .match("{transfer_target}")
+                        .match("%transfer_target%")
                         .replacement(
                                 PlaceholderComponent.builder()
                                         .context(resultContext)
@@ -164,7 +164,7 @@ public class PapiHandler {
 
         TextReplacementConfig replaceSource =
                 TextReplacementConfig.builder()
-                        .match("{transfer_source}")
+                        .match("%transfer_source%")
                         .replacement(
                                 PlaceholderComponent.builder()
                                         .context(resultContext)
@@ -177,7 +177,7 @@ public class PapiHandler {
 
         TextReplacementConfig replaceBal =
                 TextReplacementConfig.builder()
-                        .match("{balance}")
+                        .match("%balance%")
                         .replacement(
                                 PlaceholderComponent.builder()
                                         .context(playerContext)
@@ -188,7 +188,7 @@ public class PapiHandler {
 
         TextReplacementConfig replacePlayerName =
                 TextReplacementConfig.builder()
-                        .match("{name}")
+                        .match("%name%")
                         .replacement(
                                 PlaceholderComponent.builder()
                                         .context(playerContext)
@@ -199,7 +199,7 @@ public class PapiHandler {
 
         TextReplacementConfig replaceCurrentWorld =
                 TextReplacementConfig.builder()
-                        .match("{world}")
+                        .match("%world%")
                         .replacement(
                                 PlaceholderComponent.builder()
                                         .context(playerContext)

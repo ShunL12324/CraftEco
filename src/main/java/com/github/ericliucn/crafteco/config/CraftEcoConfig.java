@@ -63,25 +63,25 @@ public class CraftEcoConfig {
     public static class Messages{
 
         @Setting
-        public String transfer_failed = "&a向 &4{transfer_target} &a支付 &e{cur_symbol} &4{amount} &a的交易失败了";
+        public String transfer_failed = "&a向 &4%transfer_target% &a支付 &e%cur_symbol% &4%amount% &a的交易失败了";
 
         @Setting
-        public String transfer_failed_no_funds = "&a向 &4{transfer_target} &a支付 &e{cur_symbol} &4{amount} &a的交易失败了，\n" +
+        public String transfer_failed_no_funds = "&a向 &4%transfer_target% &a支付 &e%cur_symbol% &4%amount% &a的交易失败了，\n" +
                 "因为你没有足够的钱";
 
         @Setting
-        public String transfer_success_receiver = "&a你收到了一笔来自 &4{transfer_source} &a的支付，金额为&e{cur_symbol} &4{amount}";
+        public String transfer_success_receiver = "&a你收到了一笔来自 &4%transfer_source% &a的支付，金额为&e%cur_symbol% &4%amount%";
 
         @Setting
-        public String transfer_success_payee = "&a你向 &4{transfer_target} &a支付了 &e{cur_symbol} &4{amount}";
+        public String transfer_success_payee = "&a你向 &4%transfer_target% &a支付了 &e%cur_symbol% &4%amount%";
 
         @Setting
-        public String deposit_success_depositor = "&a成功向 {name} 的账户中存入了 &e{cur_symbol} &4{amount}&a，当前的余额为 " +
-                "&e{cur_symbol} &4{balance}";
+        public String deposit_success_depositor = "&a成功向 %name% 的账户中存入了 &e%cur_symbol% &4%amount%&a，当前的余额为 " +
+                "&e%cur_symbol% &4%balance%";
 
         @Setting
-        public String deposit_success_receiver = "&a你的账户增加了 &e{cur_symbol} &4{amount}&a, 当前余额为 &e{cur_symbol} " +
-                "&4{balance}";
+        public String deposit_success_receiver = "&a你的账户增加了 &e%cur_symbol% &4%amount%&a, 当前余额为 &e%cur_symbol% " +
+                "&4%balance%";
 
         @Setting
         public String deposit_failed_depositor = "&4未能成功向目标玩家的账户中存入";

@@ -59,10 +59,7 @@ public class Commands {
         // pay command
         final Command.Parameterized pay = Command.builder()
                 .permission("crafteco.command.pay")
-                .addParameter(
-                        // required user para
-                        Parameter.user().build()
-                )
+                .addParameter(userPara)
                 .addParameter(amountPara)
                 .addParameter(currencyPara)
                 .executor(context -> {
@@ -112,10 +109,6 @@ public class Commands {
 
                     return CommandResult.success();
                 })
-                .executionRequirements(
-                        // the command cause root object must be a player not from console
-                        commandCause -> (commandCause.root() instanceof ServerPlayer)
-                )
                 .build();
 
         final Command.Parameterized adminPay = Command.builder()
