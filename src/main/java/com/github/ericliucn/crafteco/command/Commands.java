@@ -1,16 +1,23 @@
 package com.github.ericliucn.crafteco.command;
 
 import com.github.ericliucn.crafteco.Main;
+import com.github.ericliucn.crafteco.config.ConfigLoader;
+import com.github.ericliucn.crafteco.config.CraftEcoConfig;
 import com.github.ericliucn.crafteco.eco.CraftCurrency;
 import com.github.ericliucn.crafteco.eco.CraftEcoService;
+import com.github.ericliucn.crafteco.eco.CraftResult;
+import com.github.ericliucn.crafteco.handler.PapiHandler;
 import com.github.ericliucn.crafteco.utils.Contexts;
 import com.github.ericliucn.crafteco.utils.Util;
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextColor;
+import org.spongepowered.api.Sponge;
 import org.spongepowered.api.SystemSubject;
 import org.spongepowered.api.command.Command;
 import org.spongepowered.api.command.CommandResult;
 import org.spongepowered.api.command.parameter.Parameter;
+import org.spongepowered.api.entity.living.player.User;
 import org.spongepowered.api.entity.living.player.server.ServerPlayer;
 import org.spongepowered.api.event.Cause;
 import org.spongepowered.api.event.EventContext;
@@ -23,18 +30,17 @@ import org.spongepowered.api.service.economy.account.UniqueAccount;
 import org.spongepowered.api.service.economy.transaction.ResultType;
 import org.spongepowered.api.service.economy.transaction.TransactionResult;
 import org.spongepowered.api.service.economy.transaction.TransferResult;
+import org.spongepowered.api.service.pagination.PaginationList;
 
 import java.math.BigDecimal;
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
+import java.util.concurrent.ExecutionException;
 
 public class Commands {
 
     public Commands(final RegisterCommandEvent<Command.Parameterized> event){
 
-
+        CraftEcoConfig.Messages messages = ConfigLoader.instance.getConfig().messages;
         // user parameter value
         final Parameter.Value<UUID> userPara = Parameter.user().key("user").optional().build();
         // currency parameter value
@@ -70,16 +76,39 @@ public class Commands {
                     Currency currency = context.one(currencyPara).orElse(service.defaultCurrency());
                     // get amount
                     BigDecimal amount = context.requireOne(amountPara);
-                    // set cause
-                    EventContext contexts = EventContext.builder()
-                            .add(Contexts.TRANSFER_PAYEE, source.uniqueId())
-                            .add(Contexts.TRANSFER_RECEIVER, uuid)
-                            .build();
-                    Cause cause = Cause.builder()
-                            .append(source)
-                            .build(contexts);
                     // try transfer
-                    sourceAcc.transfer(targetAcc, currency, amount, cause);
+                    CraftResult.CraftTransferResult result  = (CraftResult.CraftTransferResult) sourceAcc
+                            .transfer(targetAcc, currency, amount);
+
+                    switch (result.result()){
+                        case SUCCESS:
+                            Component messagePayee = PapiHandler.message(
+                                    messages.transfer_success_payee,
+                                    result, source, Util.toPlain(currency.displayName()));
+                            source.sendMessage(messagePayee);
+                            Component messageReceiver = PapiHandler.message(
+                                    messages.transfer_success_receiver,
+                                    result, source, Util.toPlain(currency.displayName()));
+                            try {
+                                Sponge.server().userManager().load(uuid).get().flatMap(User::player).ifPresent(player -> {
+                                    player.sendMessage(messageReceiver);
+                                });
+                            } catch (InterruptedException | ExecutionException e) {
+                                e.printStackTrace();
+                            }
+                            break;
+                        case ACCOUNT_NO_FUNDS:
+                            Component messagePayeeNoFunds = PapiHandler.message(
+                                    messages.transfer_failed_no_funds,
+                                    result, source, Util.toPlain(currency.displayName()));
+                            source.sendMessage(messagePayeeNoFunds);
+                            break;
+                        default:
+                            Component messagePayeeFailed = PapiHandler.message(
+                                    messages.transfer_failed,
+                                    result, source, Util.toPlain(currency.displayName()));
+                            source.sendMessage(messagePayeeFailed);
+                    }
 
                     return CommandResult.success();
                 })
@@ -96,34 +125,84 @@ public class Commands {
                 .addParameter(currencyPara)
                 .executor(context -> {
                     CraftEcoService service = Main.instance.getCraftEcoService();
-                    service.findOrCreateAccount(context.requireOne(userPara)).ifPresent(acc -> {
-                        TransactionResult result = acc.deposit(context.requireOne(currencyPara), context.requireOne(amountPara));
-                        if (result.result().equals(ResultType.SUCCESS)){
-                            ((Audience) context.cause().root()).sendMessage(Util.toComponent("向账户添加了" + context.requireOne(amountPara).toString()));
+                    UniqueAccount acc = service.findOrCreateAccount(context.requireOne(userPara)).get();
+                    Currency currency = context.one(currencyPara).orElse(service.defaultCurrency());
+                    BigDecimal amount = context.requireOne(amountPara);
+                    TransactionResult result = acc.deposit(currency, amount);
+                    ServerPlayer player = null;
+                    if (Sponge.server().player(context.requireOne(userPara)).isPresent()){
+                        player = Sponge.server().player(context.requireOne(userPara)).get();
+                    }
+                    // message
+                    if (result.result().equals(ResultType.SUCCESS)){
+                        if (context.cause().root() instanceof Audience){
+                            Audience audience = ((Audience) context.cause().root());
+                            audience.sendMessage(
+                                    PapiHandler.message(
+                                            messages.deposit_success_depositor,
+                                            result,
+                                            player,
+                                            Util.toPlain(currency.displayName())
+                                    )
+                            );
                         }
-                    });
+                        if (player != null){
+                            player.sendMessage(
+                                    PapiHandler.message(
+                                            messages.deposit_success_receiver,
+                                            result,
+                                            player,
+                                            Util.toPlain(currency.displayName())
+                                    )
+                            );
+                        }
+                    }else {
+                        if (context.cause().root() instanceof Audience){
+                            Audience audience = ((Audience) context.cause().root());
+                            audience.sendMessage(
+                                    PapiHandler.message(
+                                            messages.deposit_success_depositor,
+                                            result,
+                                            player,
+                                            Util.toPlain(currency.displayName())
+                                    )
+                            );
+                        }
+                    }
                     return CommandResult.success();
                 })
                 .terminal(true)
                 .build();
 
         final Command.Parameterized bal = Command.builder()
-                .addParameter(userPara)
-                .addParameter(currencyPara)
+                .addParameter(
+                        // optional user para
+                        Parameter.user().optional().key("user").build()
+                )
                 .executor(context -> {
                     CraftEcoService service = Main.instance.getCraftEcoService();
-                    CraftCurrency currency = context.one(currencyKey).orElse((CraftCurrency) service.defaultCurrency());
                     Optional<UUID> userUUID = context.one(userPara);
                     Object root = context.cause().root();
                     if (!userUUID.isPresent() && root instanceof SystemSubject){
-                        ((Audience) root).sendMessage(message("command.error.nouser"));
+                        ((Audience) root).sendMessage(
+                                PapiHandler.message(messages.command_need_user, null, null, null)
+                        );
                     }
                     if (!userUUID.isPresent() && root instanceof ServerPlayer){
-                        service.findOrCreateAccount(((ServerPlayer) root).uniqueId()).ifPresent(acc -> ((ServerPlayer) root).sendMessage(message("")));
+                        UniqueAccount acc = service.findOrCreateAccount(((ServerPlayer) root).uniqueId()).get();
+                        List<Component> components = new ArrayList<>();
+                        for (Map.Entry<Currency, BigDecimal> entry : acc.balances().entrySet()) {
+                            String s = "&6" + Util.toPlain(entry.getKey().displayName()) + "&1: &e" +
+                                    Util.toPlain(entry.getKey().symbol()) + "&a"
+                                    + entry.getValue().toString();
+                            components.add(Util.toComponent(s));
+                        }
+                        PaginationList.builder()
+                                .contents(components)
+                                .title(Util.toComponent("&5Balance"))
+                                .padding(Util.toComponent("&a="))
+                                .sendTo(((ServerPlayer) root));
                     }
-                    service.findOrCreateAccount(context.requireOne(userPara)).ifPresent(acc -> {
-                        ((Audience) root).sendMessage(Util.toComponent(acc.balance(currency).toString()));
-                    });
                     return CommandResult.success();
                 })
                 .build();
@@ -131,10 +210,6 @@ public class Commands {
         event.register(Main.instance.getContainer(), pay, "pay");
         event.register(Main.instance.getContainer(), adminPay, "adminpay");
         event.register(Main.instance.getContainer(), bal, "bal", "balance");
-    }
-
-    private static Component message(String key){
-        return MessageLoader.instance.getMessage(key);
     }
 
 

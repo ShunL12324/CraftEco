@@ -18,15 +18,15 @@ import java.util.Set;
 
 public class CraftResult implements TransactionResult {
 
-    private final CraftAccount account;
-    private final CraftCurrency currency;
-    private final BigDecimal amount;
-    private final TransactionType type;
-    private final ResultType resultType;
+    protected final CraftAccount account;
+    protected final CraftCurrency currency;
+    protected final BigDecimal amount;
+    protected final TransactionType type;
+    protected final ResultType resultType;
     @Nullable
-    private final Set<Context> contexts;
+    protected Set<Context> contexts;
     @Nullable
-    private final Cause cause;
+    protected Cause cause;
 
     public static Builder builder(){
         return Sponge.game().builderProvider().provide(Builder.class);
@@ -99,13 +99,13 @@ public class CraftResult implements TransactionResult {
 
     public static class Builder implements org.spongepowered.api.util.Builder<CraftResult, Builder>{
 
-        private CraftAccount account;
-        private CraftCurrency currency;
-        private BigDecimal amount;
-        private Set<Context> contexts;
-        private TransactionType type;
-        private ResultType resultType;
-        private Cause cause;
+        protected CraftAccount account;
+        protected CraftCurrency currency;
+        protected BigDecimal amount;
+        protected Set<Context> contexts;
+        protected TransactionType type;
+        protected ResultType resultType;
+        protected Cause cause;
 
         public Builder account(final CraftAccount account){
             this.account = account;
@@ -155,6 +155,16 @@ public class CraftResult implements TransactionResult {
         private CraftTransferResult(CraftResult result, CraftAccount accountTo) {
             super(result.account, result.currency, result.amount, result.contexts, result.type, result.resultType, result.cause);
             this.accountTo = accountTo;
+        }
+
+        public CraftTransferResult withContext(Set<Context> contexts){
+            this.contexts = contexts;
+            return this;
+        }
+
+        public CraftTransferResult withCause(Cause cause){
+            this.cause = cause;
+            return this;
         }
 
         @Override

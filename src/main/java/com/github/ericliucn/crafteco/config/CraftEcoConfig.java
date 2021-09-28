@@ -75,6 +75,21 @@ public class CraftEcoConfig {
         @Setting
         public String transfer_success_payee = "&a你向 &4{transfer_target} &a支付了 &e{cur_symbol} &4{amount}";
 
+        @Setting
+        public String deposit_success_depositor = "&a成功向 {name} 的账户中存入了 &e{cur_symbol} &4{amount}&a，当前的余额为 " +
+                "&e{cur_symbol} &4{balance}";
+
+        @Setting
+        public String deposit_success_receiver = "&a你的账户增加了 &e{cur_symbol} &4{amount}&a, 当前余额为 &e{cur_symbol} " +
+                "&4{balance}";
+
+        @Setting
+        public String deposit_failed_depositor = "&4未能成功向目标玩家的账户中存入";
+
+        @Setting
+        public String command_need_user = "&4改指令在控制台执行需要指定玩家名";
+
+
 
     }
 }

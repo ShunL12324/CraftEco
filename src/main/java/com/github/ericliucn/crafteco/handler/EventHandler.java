@@ -24,9 +24,4 @@ public class EventHandler {
         CraftEcoService.instance.findOrCreateAccount(event.player().uniqueId());
     }
 
-    @Listener
-    public void onMessage(final AudienceMessageEvent event, @First Audience audience){
-        event.setMessage(PapiHandler.message(event.message(), audience));
-    }
-
 }
