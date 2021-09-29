@@ -35,9 +35,9 @@ public class CraftEcoConfig {
     @ConfigSerializable
     public static class DatabaseConfig {
 
-        @Comment("Possible value: sqlite/mysql")
+        @Comment("Possible value: h2/mysql")
         @Setting(value = "databaseType")
-        public String dbType = "sqlite";
+        public String dbType = "h2";
 
         @Setting(value = "username")
         public String username = "root";
@@ -89,6 +89,11 @@ public class CraftEcoConfig {
         @Setting
         public String command_need_user = "&4改指令在控制台执行需要指定玩家名";
 
+        @Setting
+        public String eco_set_success = "&a成功设置了账户的金额，该账户当前对应货币余额为 &e%cur_symbol% &4%balance%";
+
+        @Setting
+        public String eco_set_failed = "&4未能成功设置该账户的金额，该账户当前余额为 &e%cur_symbol% &4%balance%";
 
 
     }

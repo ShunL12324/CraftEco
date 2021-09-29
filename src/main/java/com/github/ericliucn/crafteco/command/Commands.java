@@ -26,11 +26,13 @@ import org.spongepowered.api.event.EventContextKeys;
 import org.spongepowered.api.event.lifecycle.RegisterCommandEvent;
 import org.spongepowered.api.service.context.Context;
 import org.spongepowered.api.service.economy.Currency;
+import org.spongepowered.api.service.economy.account.Account;
 import org.spongepowered.api.service.economy.account.UniqueAccount;
 import org.spongepowered.api.service.economy.transaction.ResultType;
 import org.spongepowered.api.service.economy.transaction.TransactionResult;
 import org.spongepowered.api.service.economy.transaction.TransferResult;
 import org.spongepowered.api.service.pagination.PaginationList;
+import org.spongepowered.configurate.ConfigurateException;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -38,9 +40,11 @@ import java.util.concurrent.ExecutionException;
 
 public class Commands {
 
+    private static CraftEcoConfig.Messages messages;
+
     public Commands(final RegisterCommandEvent<Command.Parameterized> event){
 
-        CraftEcoConfig.Messages messages = ConfigLoader.instance.getConfig().messages;
+        messages = ConfigLoader.instance.getConfig().messages;
         // user parameter value
         final Parameter.Value<UUID> userPara = Parameter.user().key("user").optional().build();
         // currency parameter value
@@ -200,9 +204,70 @@ public class Commands {
                 })
                 .build();
 
+
+        final Command.Parameterized ecoSet = Command.builder()
+                .addParameter(userPara)
+                .addParameter(amountPara)
+                .addParameter(currencyPara)
+                .executor(context -> {
+                    CraftEcoService service = CraftEcoService.instance;
+                    UUID uuid = context.requireOne(userPara);
+                    BigDecimal amount = context.requireOne(amountPara);
+                    Currency currency = context.one(currencyPara).orElse(service.defaultCurrency());
+                    // find acc
+                    Account account = service.findOrCreateAccount(uuid).get();
+                    TransactionResult result = account.setBalance(currency, amount);
+                    if (context.cause().root() instanceof Audience){
+                        Audience audience = ((Audience) context.cause().root());
+                        if (result.result().equals(ResultType.SUCCESS)){
+                            audience.sendMessage(
+                                    PapiHandler.message(
+                                            messages.eco_set_success,
+                                            result,
+                                            Util.getPlayer(uuid),
+                                            Util.toPlain(result.currency().displayName())
+                                    )
+                            );
+                        }else {
+                            audience.sendMessage(
+                                    PapiHandler.message(
+                                            messages.eco_set_failed,
+                                            result,
+                                            Util.getPlayer(uuid),
+                                            Util.toPlain(result.currency().displayName())
+                                    )
+                            );
+                        }
+                    }
+                    return CommandResult.success();
+                })
+                .build();
+
+        final Command.Parameterized ecoReload = Command.builder()
+                .executor(context -> {
+                    try {
+                        CraftEcoService.instance.saveCache();
+                        ConfigLoader.instance.load();
+                        messages = ConfigLoader.instance.getConfig().messages;
+                        CraftEcoService.instance.loadCache();
+                        context.cause().audience().sendMessage(Util.toComponent("&aReload success!"));
+                    } catch (ConfigurateException e) {
+                        e.printStackTrace();
+                        context.cause().audience().sendMessage(Util.toComponent("&4Reload failed!"));
+                    }
+                    return CommandResult.success();
+                })
+                .build();
+
+        final Command.Parameterized ecoBase = Command.builder()
+                .addChild(ecoSet, "set")
+                .addChild(ecoReload, "reload")
+                .build();
+
         event.register(Main.instance.getContainer(), pay, "pay");
         event.register(Main.instance.getContainer(), adminPay, "adminpay");
         event.register(Main.instance.getContainer(), bal, "bal", "balance");
+        event.register(Main.instance.getContainer(), ecoBase, "eco");
     }
 
 

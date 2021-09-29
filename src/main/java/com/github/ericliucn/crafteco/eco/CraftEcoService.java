@@ -4,7 +4,7 @@ import com.github.ericliucn.crafteco.config.ConfigLoader;
 import com.github.ericliucn.crafteco.config.CraftEcoConfig;
 import com.github.ericliucn.crafteco.eco.account.CraftAccount;
 import com.github.ericliucn.crafteco.eco.account.CraftVirtualAccount;
-import com.github.ericliucn.crafteco.handler.database.DBLoader;
+import com.github.ericliucn.crafteco.handler.DatabaseHandler;
 import org.spongepowered.api.service.economy.Currency;
 import org.spongepowered.api.service.economy.EconomyService;
 import org.spongepowered.api.service.economy.account.*;
@@ -21,7 +21,7 @@ public class CraftEcoService implements EconomyService {
 
     public static CraftEcoService instance;
 
-    private final CraftEcoConfig config;
+    private CraftEcoConfig config;
     private final Map<UUID, CraftAccount> allAccount = new ConcurrentHashMap<>();
 
     public CraftEcoService(){
@@ -32,7 +32,8 @@ public class CraftEcoService implements EconomyService {
 
     public void loadCache(){
         allAccount.clear();
-        for (CraftAccount craftAccount : DBLoader.instance.getDbHandler().getAllAccount()) {
+        config = ConfigLoader.instance.getConfig();
+        for (CraftAccount craftAccount : DatabaseHandler.instance.getAllAccount()) {
             for (CraftCurrency currency : config.currencies) {
                 if (!craftAccount.hasBalance(currency)){
                     craftAccount.resetBalance(currency);
@@ -44,7 +45,7 @@ public class CraftEcoService implements EconomyService {
 
     public void saveCache(){
         for (CraftAccount value : this.allAccount.values()) {
-            DBLoader.instance.getDbHandler().saveAccount(value);
+            DatabaseHandler.instance.saveAccount(value);
         }
     }
 
@@ -66,12 +67,12 @@ public class CraftEcoService implements EconomyService {
     @Override
     public Optional<UniqueAccount> findOrCreateAccount(UUID uuid) {
         if (!hasAccount(uuid)){
-            DBLoader.instance.getDbHandler().createAccount(uuid);
+            DatabaseHandler.instance.createAccount(uuid);
             CraftAccount account = new CraftAccount(uuid);
             for (CraftCurrency currency : config.currencies) {
                 account.resetBalance(currency);
             }
-            DBLoader.instance.getDbHandler().saveAccount(account);
+            DatabaseHandler.instance.saveAccount(account);
             this.allAccount.put(uuid, account);
             return Optional.of(account);
         }else {
@@ -83,12 +84,12 @@ public class CraftEcoService implements EconomyService {
     public Optional<Account> findOrCreateAccount(String identifier) {
         if (!hasAccount(identifier)){
             UUID uuid = UUID.randomUUID();
-            DBLoader.instance.getDbHandler().createAccount(uuid);
+            DatabaseHandler.instance.createAccount(uuid);
             CraftVirtualAccount account = new CraftVirtualAccount(identifier, uuid);
             for (CraftCurrency currency : config.currencies) {
                 account.resetBalance(currency);
             }
-            DBLoader.instance.getDbHandler().saveAccount(account);
+            DatabaseHandler.instance.saveAccount(account);
             this.allAccount.put(uuid, account);
             return Optional.of(account);
         }else {
@@ -123,7 +124,7 @@ public class CraftEcoService implements EconomyService {
     public AccountDeletionResultType deleteAccount(UUID uuid) {
         try {
             this.allAccount.remove(uuid);
-            DBLoader.instance.getDbHandler().deleteAccount(uuid);
+            DatabaseHandler.instance.deleteAccount(uuid);
             return AccountDeletionResultTypes.SUCCESS.get();
         }catch (Exception e){
             e.printStackTrace();

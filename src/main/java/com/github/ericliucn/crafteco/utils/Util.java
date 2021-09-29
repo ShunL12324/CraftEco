@@ -7,7 +7,10 @@ import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.TextReplacementConfig;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import org.jetbrains.annotations.Nullable;
+import org.spongepowered.api.Server;
 import org.spongepowered.api.Sponge;
+import org.spongepowered.api.entity.living.player.server.ServerPlayer;
 import org.spongepowered.api.placeholder.PlaceholderComponent;
 
 import java.util.UUID;
@@ -25,6 +28,11 @@ public class Util {
 
     public static String toPlain(Component component){
         return PlainTextComponentSerializer.plainText().serialize(component);
+    }
+
+    @Nullable
+    public static ServerPlayer getPlayer(UUID uuid){
+        return Sponge.server().player(uuid).orElse(null);
     }
 
 
