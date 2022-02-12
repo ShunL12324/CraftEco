@@ -5,15 +5,18 @@ import com.github.ericliucn.crafteco.config.CraftEcoConfig;
 import com.github.ericliucn.crafteco.eco.account.CraftAccount;
 import com.github.ericliucn.crafteco.eco.account.CraftVirtualAccount;
 import com.github.ericliucn.crafteco.handler.DatabaseHandler;
+import org.spongepowered.api.Sponge;
+import org.spongepowered.api.entity.living.player.User;
 import org.spongepowered.api.service.economy.Currency;
 import org.spongepowered.api.service.economy.EconomyService;
 import org.spongepowered.api.service.economy.account.*;
+import org.spongepowered.api.util.Nameable;
 
-import java.util.Collection;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -61,14 +64,13 @@ public class CraftEcoService implements EconomyService {
 
     @Override
     public boolean hasAccount(String identifier) {
-        return allAccount.values().stream().map(CraftAccount::identifier).anyMatch(s -> s.equals(identifier));
+        return allAccount.values().stream().map(CraftAccount::identifier).anyMatch(s -> s.equalsIgnoreCase(identifier));
     }
 
-    @Override
-    public Optional<UniqueAccount> findOrCreateAccount(UUID uuid) {
+    public Optional<UniqueAccount> createUniqueAccountWithIdentifier(UUID uuid, String identifier){
         if (!hasAccount(uuid)){
             DatabaseHandler.instance.createAccount(uuid);
-            CraftAccount account = new CraftAccount(uuid);
+            CraftAccount account = new CraftAccount(uuid, identifier);
             for (CraftCurrency currency : config.currencies) {
                 account.resetBalance(currency);
             }
@@ -76,8 +78,19 @@ public class CraftEcoService implements EconomyService {
             this.allAccount.put(uuid, account);
             return Optional.of(account);
         }else {
-            return Optional.ofNullable(allAccount.get(uuid));
+            return Optional.of(allAccount.get(uuid));
         }
+    }
+
+    @Override
+    public Optional<UniqueAccount> findOrCreateAccount(UUID uuid) {
+        String identifier = Sponge.server().player(uuid).map(Nameable::name).orElse(uuid.toString());
+        try {
+            identifier = Sponge.server().userManager().load(uuid).get(10, TimeUnit.MILLISECONDS).map(User::name).orElse(identifier);
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            e.printStackTrace();
+        }
+        return createUniqueAccountWithIdentifier(uuid, identifier);
     }
 
     @Override
@@ -94,7 +107,7 @@ public class CraftEcoService implements EconomyService {
             return Optional.of(account);
         }else {
             return allAccount.values().stream()
-                    .filter(acc -> acc.identifier().equals(identifier))
+                    .filter(acc -> acc.identifier().equalsIgnoreCase(identifier))
                     .map(acc -> ((Account) acc))
                     .findFirst();
         }
@@ -153,6 +166,18 @@ public class CraftEcoService implements EconomyService {
     public Optional<Currency> getCurrency(String name){
         return ConfigLoader.instance.getConfig().currencies.stream()
                 .filter(cur -> cur.toPlain().equalsIgnoreCase(name)).map(craftCurrency -> ((Currency) craftCurrency))
+                .findFirst();
+    }
+
+    public List<String> identifiers(){
+        return allAccount.values().stream().map(CraftAccount::identifier).collect(Collectors.toList());
+    }
+
+    // get account without create, only for command parser
+    public Optional<Account> searchAccountByIdentifier(String identifier){
+        return allAccount.values().stream()
+                .map(craftAccount -> (Account)craftAccount)
+                .filter(craftAccount -> craftAccount.identifier().equalsIgnoreCase(identifier))
                 .findFirst();
     }
 

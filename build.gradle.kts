@@ -17,8 +17,7 @@ repositories {
 
 dependencies{
     implementation( "mysql", "mysql-connector-java", "8.0.25")
-    implementation("com.zaxxer", "HikariCP", "4.0.3")
-    implementation("org.xerial:sqlite-jdbc:3.36.0.1")
+    implementation("com.h2database:h2:2.1.210")
 }
 
 sponge {
@@ -70,11 +69,13 @@ tasks.withType(AbstractArchiveTask::class).configureEach {
 
 tasks {
     named<ShadowJar>("shadowJar") {
-        relocate("google.protobuf", "myres.google.protobuf")
-        relocate("com.google.protobuf", "myres.com.google.protobuf")
-        relocate("com.mysql", "myres.com.mysql")
+        relocate("google.protobuf", "crafteco.google.protobuf")
+        relocate("com.google.protobuf", "crafteco.com.google.protobuf")
+        relocate("com.mysql", "crafteco.com.mysql")
+        relocate("org.h2", "crafteco.org.h2")
     }
 }
+
 
 tasks {
     build {

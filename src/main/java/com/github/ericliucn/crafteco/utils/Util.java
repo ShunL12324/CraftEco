@@ -30,10 +30,5 @@ public class Util {
         return PlainTextComponentSerializer.plainText().serialize(component);
     }
 
-    @Nullable
-    public static ServerPlayer getPlayer(UUID uuid){
-        return Sponge.server().player(uuid).orElse(null);
-    }
-
 
 }

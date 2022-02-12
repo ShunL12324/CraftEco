@@ -57,12 +57,7 @@ public class PapiHandler {
             .parser(context -> {
                 if (context.associatedObject().isPresent() && context.associatedObject().get() instanceof TransferResult){
                     TransferResult result = ((TransferResult) context.associatedObject().get());
-                    try {
-                        Optional<User> optionalUser = Sponge.server().userManager().load(UUID.fromString(result.accountTo().identifier())).get();
-                        return Util.toComponent(optionalUser.get().name());
-                    } catch (InterruptedException | ExecutionException e) {
-                        e.printStackTrace();
-                    }
+                    return Util.toComponent(result.accountTo().identifier());
                 }
                 return Component.empty();
             })
@@ -72,12 +67,7 @@ public class PapiHandler {
             .parser(context -> {
                 if (context.associatedObject().isPresent() && context.associatedObject().get() instanceof TransferResult){
                     TransferResult result = ((TransferResult) context.associatedObject().get());
-                    try {
-                        Optional<User> optionalUser = Sponge.server().userManager().load(result.account().identifier()).get();
-                        return Util.toComponent(optionalUser.get().name());
-                    } catch (InterruptedException | ExecutionException e) {
-                        e.printStackTrace();
-                    }
+                    return Util.toComponent(result.account().identifier());
                 }
                 return Component.empty();
             })
@@ -168,7 +158,7 @@ public class PapiHandler {
                         .replacement(
                                 PlaceholderComponent.builder()
                                         .context(resultContext)
-                                        .parser(TRANSFER_TARGET)
+                                        .parser(TRANSFER_SOURCE)
                                         .build()
                         )
                         .build();

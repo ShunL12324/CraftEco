@@ -13,6 +13,7 @@ import io.leangen.geantyref.TypeToken;
 import net.kyori.adventure.text.Component;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.api.Sponge;
+import org.spongepowered.api.entity.living.player.User;
 import org.spongepowered.api.entity.living.player.server.ServerPlayer;
 import org.spongepowered.api.event.Cause;
 import org.spongepowered.api.event.EventContext;
@@ -39,22 +40,17 @@ public class CraftAccount implements Account, UniqueAccount {
     private Map<Currency, BigDecimal> balanceMap;
     private final UUID uniqueID;
     protected boolean isVirtual;
+    private String identifier;
 
-    public CraftAccount(final UUID uniqueID){
+    public CraftAccount(final UUID uniqueID, final String identifier){
         this.balanceMap = new ConcurrentHashMap<>();
         this.uniqueID = uniqueID;
         this.isVirtual = false;
+        this.identifier = identifier;
     }
 
     @Override
     public Component displayName() {
-        if (Sponge.server().userManager().exists(this.uniqueID)){
-            try {
-                Sponge.server().userManager().load(this.uniqueID).get().get().name();
-            } catch (InterruptedException | ExecutionException e) {
-                e.printStackTrace();
-            }
-        }
         return Util.toComponent(this.identifier());
     }
 
@@ -267,8 +263,9 @@ public class CraftAccount implements Account, UniqueAccount {
 
     @Override
     public String identifier() {
-        return this.uniqueID.toString();
+        return this.identifier;
     }
+
 
     public boolean isVirtual(){
         return this.isVirtual;
@@ -303,8 +300,8 @@ public class CraftAccount implements Account, UniqueAccount {
             UUID uuid = UUID.fromString(properties.get("uuid"));
             String identifier = properties.get("identifier");
             boolean isVirtual = properties.get("isVirtual").equals("true");
-            CraftAccount account = isVirtual ? new CraftVirtualAccount(identifier, uuid) : new CraftAccount(uuid);
-            Map<Currency, BigDecimal> balMap = new ConcurrentHashMap<>();
+            CraftAccount account = isVirtual ? new CraftVirtualAccount(identifier, uuid) : new CraftAccount(uuid, identifier);
+            Map<Currency, BigDecimal> balMap = new HashMap<>();
             for (Map.Entry<String, String> entry : balanceData.entrySet()) {
                 for (CraftCurrency currency : ConfigLoader.instance.getConfig().currencies) {
                     if (entry.getKey().equals(currency.toPlain())){

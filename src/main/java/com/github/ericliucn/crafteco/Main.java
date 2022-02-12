@@ -7,6 +7,7 @@ import com.github.ericliucn.crafteco.eco.CraftResult;
 import com.github.ericliucn.crafteco.handler.DatabaseHandler;
 import com.github.ericliucn.crafteco.handler.EventHandler;
 import com.github.ericliucn.crafteco.handler.PapiHandler;
+import com.github.ericliucn.crafteco.metric.Metrics;
 import com.google.inject.Inject;
 import org.apache.logging.log4j.Logger;
 import org.spongepowered.api.ResourceKey;
@@ -44,26 +45,26 @@ public class Main {
     private Path configDir;
 
     @Inject
-    Main(final PluginContainer container, final Logger logger) {
+    Main(final PluginContainer container, final Logger logger, final Metrics.Factory factory) {
         instance = this;
         this.container = container;
         this.logger = logger;
+        // the Metrics.class will check if metric enable
+        factory.make(14279);
     }
 
+
     @Listener
-    public void onConstructPlugin(final ConstructPluginEvent event) throws IOException, SQLException {
+    public void onConstructPlugin(final ConstructPluginEvent event) throws IOException, SQLException, ClassNotFoundException {
         new ConfigLoader(configDir);
         new DatabaseHandler();
     }
 
     @Listener
-    public void onServerStarting(final StartingEngineEvent<Server> event) throws IOException {
-    }
-
-    @Listener
-    public void onServerStarted(final StartedEngineEvent<Server> event){
+    public void onServerStarting(final StartingEngineEvent<Server> event) {
         new EventHandler();
     }
+
 
     @Listener
     public void onRegisterService(final ProvideServiceEvent<EconomyService> event){

@@ -45,17 +45,6 @@ public class Commands {
     public Commands(final RegisterCommandEvent<Command.Parameterized> event){
 
         messages = ConfigLoader.instance.getConfig().messages;
-        // user parameter value
-        final Parameter.Value<UUID> userPara = Parameter.user().key("user").optional().build();
-        // currency parameter value
-        final Parameter.Value<Currency> currencyPara = Parameter.builder(Currency.class)
-                .key("currency")
-                .optional()
-                .addParser(new CraftCurrencyParser())
-                .completer(new CraftCurrencyParser.CraftCurrencyCompleter())
-                .build();
-        // amount parameter value
-        final Parameter.Value<BigDecimal> amountPara = Parameter.bigDecimal().key("amount").build();
 
         // The following commands are user commands
         // which means they are not sub commands of `eco`
@@ -63,23 +52,20 @@ public class Commands {
         // pay command
         final Command.Parameterized pay = Command.builder()
                 .permission("crafteco.command.pay")
-                .addParameter(userPara)
-                .addParameter(amountPara)
-                .addParameter(currencyPara)
+                .addParameter(EcoParameters.ACCOUNT_PARA)
+                .addParameter(EcoParameters.AMOUNT_PARA)
+                .addParameter(EcoParameters.CURRENCY_PARA)
                 .executor(context -> {
                     CraftEcoService service = CraftEcoService.instance;
                     ServerPlayer source = ((ServerPlayer) context.cause().root());
-                    UUID uuid = context.requireOne(userPara);
-                    // we get the source account and target account
-                    UniqueAccount sourceAcc = service.findOrCreateAccount(source.uniqueId()).get();
-                    UniqueAccount targetAcc = service.findOrCreateAccount(uuid).get();
+                    Account sourceAcc = service.findOrCreateAccount(source.uniqueId()).get();
+                    Account targetAcc = context.requireOne(EcoParameters.ACCOUNT_PARA_KEY);
                     // we get the currency using, if no specific currency we are going use default currency
-                    Currency currency = context.one(currencyPara).orElse(service.defaultCurrency());
+                    Currency currency = context.one(EcoParameters.CURRENCY_PARA_KEY).orElse(service.defaultCurrency());
                     // get amount
-                    BigDecimal amount = context.requireOne(amountPara);
+                    BigDecimal amount = context.requireOne(EcoParameters.AMOUNT_PARA_KEY);
                     // try transfer
-                    CraftResult.CraftTransferResult result  = (CraftResult.CraftTransferResult) sourceAcc
-                            .transfer(targetAcc, currency, amount);
+                    TransferResult result  = sourceAcc.transfer(targetAcc, currency, amount);
 
                     switch (result.result()){
                         case SUCCESS:
@@ -90,13 +76,6 @@ public class Commands {
                             Component messageReceiver = PapiHandler.message(
                                     messages.transfer_success_receiver,
                                     result, source, Util.toPlain(currency.displayName()));
-                            try {
-                                Sponge.server().userManager().load(uuid).get().flatMap(User::player).ifPresent(player -> {
-                                    player.sendMessage(messageReceiver);
-                                });
-                            } catch (InterruptedException | ExecutionException e) {
-                                e.printStackTrace();
-                            }
                             break;
                         case ACCOUNT_NO_FUNDS:
                             Component messagePayeeNoFunds = PapiHandler.message(
@@ -117,19 +96,16 @@ public class Commands {
 
         final Command.Parameterized adminPay = Command.builder()
                 .permission("crafteco.command.adminpay")
-                .addParameter(userPara)
-                .addParameter(amountPara)
-                .addParameter(currencyPara)
+                .addParameter(EcoParameters.ACCOUNT_PARA)
+                .addParameter(EcoParameters.AMOUNT_PARA)
+                .addParameter(EcoParameters.CURRENCY_PARA)
                 .executor(context -> {
                     CraftEcoService service = Main.instance.getCraftEcoService();
-                    UniqueAccount acc = service.findOrCreateAccount(context.requireOne(userPara)).get();
-                    Currency currency = context.one(currencyPara).orElse(service.defaultCurrency());
-                    BigDecimal amount = context.requireOne(amountPara);
+                    Account acc = context.requireOne(EcoParameters.ACCOUNT_PARA_KEY);
+                    Currency currency = context.one(EcoParameters.CURRENCY_PARA_KEY).orElse(service.defaultCurrency());
+                    BigDecimal amount = context.requireOne(EcoParameters.AMOUNT_PARA_KEY);
                     TransactionResult result = acc.deposit(currency, amount);
-                    ServerPlayer player = null;
-                    if (Sponge.server().player(context.requireOne(userPara)).isPresent()){
-                        player = Sponge.server().player(context.requireOne(userPara)).get();
-                    }
+                    Optional<ServerPlayer> player = Sponge.server().player(acc.identifier());
                     // message
                     if (result.result().equals(ResultType.SUCCESS)){
                         if (context.cause().root() instanceof Audience){
@@ -138,21 +114,19 @@ public class Commands {
                                     PapiHandler.message(
                                             messages.deposit_success_depositor,
                                             result,
-                                            player,
+                                            player.orElse(null),
                                             Util.toPlain(currency.displayName())
                                     )
                             );
                         }
-                        if (player != null){
-                            player.sendMessage(
-                                    PapiHandler.message(
-                                            messages.deposit_success_receiver,
-                                            result,
-                                            player,
-                                            Util.toPlain(currency.displayName())
-                                    )
-                            );
-                        }
+                        player.ifPresent(p -> p.sendMessage(
+                                PapiHandler.message(
+                                        messages.deposit_success_receiver,
+                                        result,
+                                        player.orElse(null),
+                                        Util.toPlain(currency.displayName())
+                                )
+                        ));
                     }else {
                         if (context.cause().root() instanceof Audience){
                             Audience audience = ((Audience) context.cause().root());
@@ -172,25 +146,25 @@ public class Commands {
                 .build();
 
         final Command.Parameterized bal = Command.builder()
-                .addParameter(
-                        // optional user para
-                        Parameter.user().optional().key("user").build()
-                )
+                .permission("crafteco.command.balance")
+                .addParameter(EcoParameters.ACCOUNT_PARA_OPTIONAL)
                 .executor(context -> {
-                    CraftEcoService service = Main.instance.getCraftEcoService();
-                    Optional<UUID> userUUID = context.one(userPara);
                     Object root = context.cause().root();
-                    if (!userUUID.isPresent() && root instanceof SystemSubject){
+                    Account account = context.one(EcoParameters.ACCOUNT_PARA).orElse(null);
+                    if (account == null && root instanceof SystemSubject){
                         ((Audience) root).sendMessage(
                                 PapiHandler.message(messages.command_need_user, null, null, null)
                         );
+                        return CommandResult.error(Util.toComponent("&4need specific account"));
                     }
-                    if (!userUUID.isPresent() && root instanceof ServerPlayer){
-                        UniqueAccount acc = service.findOrCreateAccount(((ServerPlayer) root).uniqueId()).get();
+                    if (account == null && root instanceof ServerPlayer){
+                        account = CraftEcoService.instance.findOrCreateAccount(((ServerPlayer) root).uniqueId()).orElse(null);
+                    }
+                    if (account != null && root instanceof Audience) {
                         List<Component> components = new ArrayList<>();
-                        for (Map.Entry<Currency, BigDecimal> entry : acc.balances().entrySet()) {
-                            String s = "&6" + Util.toPlain(entry.getKey().displayName()) + "&1: &e" +
-                                    Util.toPlain(entry.getKey().symbol()) + "&a"
+                        for (Map.Entry<Currency, BigDecimal> entry : account.balances().entrySet()) {
+                            String s = "&6" + Util.toPlain(entry.getKey().displayName()) + "&f: &e" +
+                                    Util.toPlain(entry.getKey().symbol()) + " &4"
                                     + entry.getValue().toString();
                             components.add(Util.toComponent(s));
                         }
@@ -198,7 +172,7 @@ public class Commands {
                                 .contents(components)
                                 .title(Util.toComponent("&5Balance"))
                                 .padding(Util.toComponent("&a="))
-                                .sendTo(((ServerPlayer) root));
+                                .sendTo(((Audience) root));
                     }
                     return CommandResult.success();
                 })
@@ -206,16 +180,15 @@ public class Commands {
 
 
         final Command.Parameterized ecoSet = Command.builder()
-                .addParameter(userPara)
-                .addParameter(amountPara)
-                .addParameter(currencyPara)
+                .permission("crafteco.command.eco.set")
+                .addParameter(EcoParameters.ACCOUNT_PARA)
+                .addParameter(EcoParameters.AMOUNT_PARA)
+                .addParameter(EcoParameters.CURRENCY_PARA)
                 .executor(context -> {
                     CraftEcoService service = CraftEcoService.instance;
-                    UUID uuid = context.requireOne(userPara);
-                    BigDecimal amount = context.requireOne(amountPara);
-                    Currency currency = context.one(currencyPara).orElse(service.defaultCurrency());
-                    // find acc
-                    Account account = service.findOrCreateAccount(uuid).get();
+                    Account account = context.requireOne(EcoParameters.ACCOUNT_PARA_KEY);
+                    BigDecimal amount = context.requireOne(EcoParameters.AMOUNT_PARA_KEY);
+                    Currency currency = context.one(EcoParameters.CURRENCY_PARA_KEY).orElse(service.defaultCurrency());
                     TransactionResult result = account.setBalance(currency, amount);
                     if (context.cause().root() instanceof Audience){
                         Audience audience = ((Audience) context.cause().root());
@@ -224,7 +197,7 @@ public class Commands {
                                     PapiHandler.message(
                                             messages.eco_set_success,
                                             result,
-                                            Util.getPlayer(uuid),
+                                            Sponge.server().player(account.identifier()).orElse(null),
                                             Util.toPlain(result.currency().displayName())
                                     )
                             );
@@ -233,7 +206,7 @@ public class Commands {
                                     PapiHandler.message(
                                             messages.eco_set_failed,
                                             result,
-                                            Util.getPlayer(uuid),
+                                            Sponge.server().player(account.identifier()).orElse(null),
                                             Util.toPlain(result.currency().displayName())
                                     )
                             );
@@ -244,6 +217,7 @@ public class Commands {
                 .build();
 
         final Command.Parameterized ecoReload = Command.builder()
+                .permission("crafteco.command.eco.reload")
                 .executor(context -> {
                     try {
                         CraftEcoService.instance.saveCache();

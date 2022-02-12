@@ -9,10 +9,7 @@ import org.spongepowered.api.sql.SqlManager;
 
 import javax.sql.DataSource;
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -24,38 +21,26 @@ public class DatabaseHandler {
     private final CraftEcoConfig.DatabaseConfig config;
     private final DataSource dataSource;
 
-    public DatabaseHandler() throws SQLException {
+    public DatabaseHandler() throws SQLException, ClassNotFoundException {
+        instance = this;
         config = ConfigLoader.instance.getConfig().database;
         String dbType = config.dbType;
         String jdbcURL = this.createJDBCURL(dbType);
         SqlManager sqlManager = Sponge.game().sqlManager();
-        System.out.println(jdbcURL);
         dataSource = sqlManager.dataSource(jdbcURL);
-        createDB();
         createTable();
     }
 
-    private String createJDBCURL(String dbType){
+    private String createJDBCURL(String dbType) throws ClassNotFoundException {
         if (dbType.equalsIgnoreCase("mysql")){
-            return "jdbc:mysql://" + config.address + ":" + config.port + "?user=" + config.username
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            return "jdbc:mysql://" + config.address + ":" + config.port
+                    + "/" + config.databaseName
+                    + "?user=" + config.username
                     + "&password=" + config.passwd;
         }
-        return "jdbc:h2:" + Main.instance.getConfigDir().resolve(config.databaseName + ".db");
-    }
-    
-    
-    public void createDB() {
-        if (config.dbType.equalsIgnoreCase("mysql")) {
-            String sql = "CREATE DATABASE " + config.databaseName;
-            try (
-                    Connection connection = dataSource.getConnection();
-                    PreparedStatement statement = connection.prepareStatement(sql)
-            ) {
-                statement.execute();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-        }
+        Class.forName ("org.h2.Driver");
+        return "jdbc:h2:" + Main.instance.getConfigDir().resolve(config.databaseName);
     }
     
     public void createTable() {
@@ -125,7 +110,7 @@ public class DatabaseHandler {
                 PreparedStatement statement = connection.prepareStatement(UPDATE_ACCOUNT)
         ){
             statement.setBytes(1, account.serialize());
-            statement.setString(2, account.identifier());
+            statement.setString(2, account.uniqueId().toString());
             statement.execute();
             return true;
         }catch (SQLException | IOException e){
