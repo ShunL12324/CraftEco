@@ -104,4 +104,8 @@ public class Main {
     public Path getConfigDir() {
         return configDir;
     }
+
+    public Logger logger() {
+        return logger;
+    }
 }

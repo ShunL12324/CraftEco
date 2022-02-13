@@ -9,7 +9,7 @@ plugins {
 }
 
 group = "com.github.ericliucn"
-version = "1.0"
+version = "1.1"
 
 repositories {
     mavenCentral()
@@ -17,7 +17,7 @@ repositories {
 
 dependencies{
     implementation( "mysql", "mysql-connector-java", "8.0.25")
-    implementation("com.h2database:h2:2.1.210")
+    implementation("com.h2database:h2:1.4.200")
 }
 
 sponge {
@@ -25,7 +25,7 @@ sponge {
     license("MIT")
     loader {
         name(PluginLoaders.JAVA_PLAIN)
-        version("1.0")
+        version("1.1")
     }
     plugin("crafteco") {
         displayName("CraftEco")

@@ -18,8 +18,8 @@ import java.util.Set;
 
 public class CraftResult implements TransactionResult {
 
-    protected final CraftAccount account;
-    protected final CraftCurrency currency;
+    protected final Account account;
+    protected final Currency currency;
     protected final BigDecimal amount;
     protected final TransactionType type;
     protected final ResultType resultType;
@@ -32,7 +32,7 @@ public class CraftResult implements TransactionResult {
         return Sponge.game().builderProvider().provide(Builder.class);
     }
 
-    private CraftResult(CraftAccount account, CraftCurrency currency, BigDecimal amount, @Nullable Set<Context> contexts,
+    private CraftResult(Account account, Currency currency, BigDecimal amount, @Nullable Set<Context> contexts,
                         TransactionType transactionType, ResultType resultType, @Nullable Cause cause){
         this.account = account;
         this.currency = currency;
@@ -93,26 +93,26 @@ public class CraftResult implements TransactionResult {
         return builder;
     }
 
-    public CraftTransferResult toTransferResult(CraftAccount accountTo){
+    public CraftTransferResult toTransferResult(Account accountTo){
         return new CraftTransferResult(this, accountTo);
     }
 
     public static class Builder implements org.spongepowered.api.util.Builder<CraftResult, Builder>{
 
-        protected CraftAccount account;
-        protected CraftCurrency currency;
+        protected Account account;
+        protected Currency currency;
         protected BigDecimal amount;
         protected Set<Context> contexts;
         protected TransactionType type;
         protected ResultType resultType;
         protected Cause cause;
 
-        public Builder account(final CraftAccount account){
+        public Builder account(final Account account){
             this.account = account;
             return this;
         }
 
-        public Builder currency(final CraftCurrency currency){
+        public Builder currency(final Currency currency){
             this.currency = currency;
             return this;
         }
@@ -150,9 +150,9 @@ public class CraftResult implements TransactionResult {
 
     public static class CraftTransferResult extends CraftResult implements TransferResult {
 
-        private final CraftAccount accountTo;
+        private final Account accountTo;
 
-        private CraftTransferResult(CraftResult result, CraftAccount accountTo) {
+        private CraftTransferResult(CraftResult result, Account accountTo) {
             super(result.account, result.currency, result.amount, result.contexts, result.type, result.resultType, result.cause);
             this.accountTo = accountTo;
         }

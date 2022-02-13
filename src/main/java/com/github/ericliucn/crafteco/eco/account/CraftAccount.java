@@ -42,10 +42,11 @@ public class CraftAccount implements Account, UniqueAccount {
     protected boolean isVirtual;
     private String identifier;
 
-    public CraftAccount(final UUID uniqueID, final String identifier){
+    public CraftAccount(final String identifier, final UUID uniqueID){
         this.balanceMap = new ConcurrentHashMap<>();
         this.uniqueID = uniqueID;
         this.isVirtual = false;
+        // the default identifier is the uuid, will be change if any player's uuid match the account's uuid
         this.identifier = identifier;
     }
 
@@ -91,12 +92,13 @@ public class CraftAccount implements Account, UniqueAccount {
 
     @Override
     public TransactionResult setBalance(Currency currency, BigDecimal amount) {
-        if (currency instanceof CraftCurrency){
-            this.balanceMap.put(currency, amount);
-            return CraftResult.builder().currency((CraftCurrency) currency).account(this).amount(amount).result(ResultType.SUCCESS).build();
-        }else {
-            throw new IllegalStateException("The currency must be CraftCurrency!");
-        }
+        this.balanceMap.put(currency, amount);
+        return CraftResult.builder()
+                .currency(currency)
+                .account(this)
+                .amount(amount)
+                .result(ResultType.SUCCESS)
+                .build();
     }
 
     @Override
@@ -111,26 +113,30 @@ public class CraftAccount implements Account, UniqueAccount {
 
     @Override
     public Map<Currency, TransactionResult> resetBalances() {
-        final Map<Currency, TransactionResult> resultMap = new HashMap<>();
-        for (Map.Entry<Currency, BigDecimal> entry : this.balanceMap.entrySet()) {
-            CraftCurrency craftCurrency = (CraftCurrency) entry.getKey();
-            resultMap.put(craftCurrency, setBalance(craftCurrency, defaultBalance(craftCurrency)));
-        }
-        return resultMap;
+        Map<Currency, TransactionResult> results = new HashMap<>();
+        CraftEcoService.instance.currencies().forEach(cur -> {
+            TransactionResult result = this.setBalance(cur, defaultBalance(cur));
+            results.put(cur, result);
+        });
+        return results;
     }
 
     @Override
     public Map<Currency, TransactionResult> resetBalances(Set<Context> contexts) {
-        Map<Currency, TransactionResult> map = resetBalances();
-        map.replaceAll((k, v) -> ((CraftResult) v).toBuilder().contexts(contexts).build());
-        return map;
+        Map<Currency, TransactionResult> results = resetBalances();
+        resetBalances().replaceAll((currency, transactionResult) -> {
+            return ((CraftResult) transactionResult).toBuilder().contexts(contexts).build();
+        });
+        return results;
     }
 
     @Override
     public Map<Currency, TransactionResult> resetBalances(Cause cause) {
-        Map<Currency, TransactionResult> map = resetBalances();
-        map.replaceAll((k, v) -> ((CraftResult) v).toBuilder().cause(cause).build());
-        return map;
+        Map<Currency, TransactionResult> results = resetBalances();
+        resetBalances().replaceAll((currency, transactionResult) -> {
+            return ((CraftResult) transactionResult).toBuilder().cause(cause).build();
+        });
+        return results;
     }
 
     @Override
@@ -150,17 +156,17 @@ public class CraftAccount implements Account, UniqueAccount {
 
     @Override
     public TransactionResult deposit(Currency currency, BigDecimal amount) {
-        if (currency instanceof CraftCurrency){
+        CraftResult.Builder result = CraftResult.builder()
+                .currency(currency)
+                .account(this)
+                .type(TransactionTypes.DEPOSIT.get())
+                .amount(amount);
+        try{
             this.balanceMap.put(currency, balance(currency).add(amount));
-            return CraftResult.builder()
-                    .currency((CraftCurrency) currency)
-                    .account(this)
-                    .result(ResultType.SUCCESS)
-                    .type(TransactionTypes.DEPOSIT.get())
-                    .amount(amount)
-                    .build();
-        }else {
-            throw new IllegalStateException("The currency must be CraftCurrency!");
+            return result.result(ResultType.SUCCESS).build();
+        }catch (Exception e){
+            e.printStackTrace();
+            return result.result(ResultType.FAILED).build();
         }
     }
 
@@ -176,26 +182,20 @@ public class CraftAccount implements Account, UniqueAccount {
 
     @Override
     public TransactionResult withdraw(Currency currency, BigDecimal amount) {
-        if (currency instanceof CraftCurrency){
-            if (balance(currency).compareTo(amount) < 0){
-                return CraftResult.builder()
-                        .currency(((CraftCurrency) currency))
-                        .account(this)
-                        .result(ResultType.ACCOUNT_NO_FUNDS)
-                        .type(TransactionTypes.WITHDRAW.get())
-                        .amount(amount)
-                        .build();
+        CraftResult.Builder result = CraftResult.builder()
+                .currency(currency)
+                .account(this)
+                .type(TransactionTypes.WITHDRAW.get())
+                .amount(amount);
+        try {
+            if (balance(currency).compareTo(amount) < 0) {
+                return result.result(ResultType.ACCOUNT_NO_FUNDS).build();
             }
             this.balanceMap.put(currency, balance(currency).subtract(amount));
-            return CraftResult.builder()
-                    .currency((CraftCurrency) currency)
-                    .account(this)
-                    .result(ResultType.SUCCESS)
-                    .type(TransactionTypes.WITHDRAW.get())
-                    .amount(amount)
-                    .build();
-        }else {
-            throw new IllegalStateException("The currency must be CraftCurrency!");
+            return result.result(ResultType.SUCCESS).build();
+        }catch (Exception e){
+            e.printStackTrace();
+            return result.result(ResultType.FAILED).build();
         }
     }
 
@@ -211,42 +211,27 @@ public class CraftAccount implements Account, UniqueAccount {
 
     @Override
     public TransferResult transfer(Account to, Currency currency, BigDecimal amount) {
-        if ((to instanceof CraftAccount) && (currency instanceof CraftCurrency)){
-            if (balance(currency).compareTo(amount) < 0){
-                return CraftResult.builder()
-                        .account(this)
-                        .result(ResultType.ACCOUNT_NO_FUNDS)
-                        .type(TransactionTypes.TRANSFER.get())
-                        .amount(amount)
-                        .currency((CraftCurrency) currency)
-                        .build()
-                        .toTransferResult((CraftAccount) to);
-            }else {
-                try {
-                    this.balanceMap.put(currency, balance(currency).subtract(amount));
-                    ((CraftAccount) to).balanceMap.put(currency, to.balance(currency).add(amount));
-                    return CraftResult.builder()
-                            .account(this)
-                            .result(ResultType.SUCCESS)
-                            .type(TransactionTypes.TRANSFER.get())
-                            .amount(amount)
-                            .currency((CraftCurrency) currency)
-                            .build()
-                            .toTransferResult((CraftAccount) to);
-                }catch (Exception e){
-                    e.printStackTrace();
-                    return CraftResult.builder()
-                            .account(this)
-                            .result(ResultType.FAILED)
-                            .type(TransactionTypes.TRANSFER.get())
-                            .amount(amount)
-                            .currency((CraftCurrency) currency)
-                            .build()
-                            .toTransferResult((CraftAccount) to);
-                }
-            }
+        CraftResult.Builder result = CraftResult.builder()
+                .account(this)
+                .type(TransactionTypes.TRANSFER.get())
+                .amount(amount)
+                .currency(currency);
+
+        if (balance(currency).compareTo(amount) < 0){
+            return result.result(ResultType.ACCOUNT_NO_FUNDS).build().toTransferResult(to);
         }else {
-            throw new IllegalStateException("The currency must be CraftCurrency!");
+            try {
+                TransactionResult withdrawResult = this.withdraw(currency, amount);
+                TransactionResult depositResult = to.deposit(currency, amount);
+                if (withdrawResult.result().equals(ResultType.SUCCESS) && depositResult.result().equals(ResultType.SUCCESS)){
+                    return result.result(ResultType.FAILED).build().toTransferResult(to);
+                }else {
+                    throw new Exception("error occurred during transfer");
+                }
+            }catch (Exception e){
+                e.printStackTrace();
+                return result.result(ResultType.FAILED).build().toTransferResult(to);
+            }
         }
     }
 
@@ -260,12 +245,19 @@ public class CraftAccount implements Account, UniqueAccount {
         return ((CraftResult.CraftTransferResult) transfer(to, currency, amount)).withCause(cause);
     }
 
-
     @Override
     public String identifier() {
         return this.identifier;
     }
 
+    @Override
+    public UUID uniqueId() {
+        return this.uniqueID;
+    }
+
+    public void setIdentifier(String identifier){
+        this.identifier = identifier;
+    }
 
     public boolean isVirtual(){
         return this.isVirtual;
@@ -300,7 +292,7 @@ public class CraftAccount implements Account, UniqueAccount {
             UUID uuid = UUID.fromString(properties.get("uuid"));
             String identifier = properties.get("identifier");
             boolean isVirtual = properties.get("isVirtual").equals("true");
-            CraftAccount account = isVirtual ? new CraftVirtualAccount(identifier, uuid) : new CraftAccount(uuid, identifier);
+            CraftAccount account = isVirtual ? new CraftVirtualAccount(identifier, uuid) : new CraftAccount(identifier, uuid);
             Map<Currency, BigDecimal> balMap = new HashMap<>();
             for (Map.Entry<String, String> entry : balanceData.entrySet()) {
                 for (CraftCurrency currency : ConfigLoader.instance.getConfig().currencies) {
@@ -315,10 +307,5 @@ public class CraftAccount implements Account, UniqueAccount {
             e.printStackTrace();
             return null;
         }
-    }
-
-    @Override
-    public UUID uniqueId() {
-        return this.uniqueID;
     }
 }

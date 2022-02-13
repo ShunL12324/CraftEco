@@ -3,12 +3,14 @@ package com.github.ericliucn.crafteco.command;
 import com.github.ericliucn.crafteco.config.ConfigLoader;
 import com.github.ericliucn.crafteco.eco.CraftCurrency;
 import com.github.ericliucn.crafteco.eco.CraftEcoService;
+import com.github.ericliucn.crafteco.utils.Util;
 import org.spongepowered.api.command.CommandCompletion;
 import org.spongepowered.api.command.parameter.Parameter;
 import org.spongepowered.api.service.economy.Currency;
 import org.spongepowered.api.service.economy.account.Account;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.stream.Collectors;
 
 public class EcoParameters {
@@ -18,24 +20,53 @@ public class EcoParameters {
             .key(ACCOUNT_PARA_KEY)
             .completer((context, currentInput) -> {
                 CraftEcoService service = CraftEcoService.instance;
-                return service.identifiers().stream().map(CommandCompletion::of).collect(Collectors.toList());
+                List<CommandCompletion> uniqueAccounts = service.streamUniqueAccounts()
+                        .map(acc -> CommandCompletion.of(acc.identifier()))
+                        .collect(Collectors.toList());
+                List<CommandCompletion> virtualAccounts = service.streamVirtualAccounts()
+                        .map(acc -> CommandCompletion.of(acc.identifier() + "[virtual]"))
+                        .collect(Collectors.toList());
+                uniqueAccounts.addAll(virtualAccounts);
+                return uniqueAccounts;
             })
             .addParser((parameterKey, reader, context) -> {
                 String identifier = reader.parseString();
                 CraftEcoService service = CraftEcoService.instance;
-                return service.searchAccountByIdentifier(identifier);
+                if (identifier.endsWith("[virtual]")){
+                    return service.streamVirtualAccounts()
+                            .filter(acc -> acc.identifier().equalsIgnoreCase(identifier.replace("[virtual]", "")))
+                            .findFirst();
+                }
+                return service.streamUniqueAccounts()
+                        .filter(acc -> acc.identifier().equalsIgnoreCase(identifier))
+                        .findFirst();
             })
             .build();
+
     public static Parameter.Value<Account> ACCOUNT_PARA_OPTIONAL = Parameter.builder(Account.class)
             .key(ACCOUNT_PARA_KEY)
             .completer((context, currentInput) -> {
                 CraftEcoService service = CraftEcoService.instance;
-                return service.identifiers().stream().map(CommandCompletion::of).collect(Collectors.toList());
+                List<CommandCompletion> uniqueAccounts = service.streamUniqueAccounts()
+                        .map(acc -> CommandCompletion.of(acc.identifier()))
+                        .collect(Collectors.toList());
+                List<CommandCompletion> virtualAccounts = service.streamVirtualAccounts()
+                        .map(acc -> CommandCompletion.of(acc.identifier() + "[virtual]"))
+                        .collect(Collectors.toList());
+                uniqueAccounts.addAll(virtualAccounts);
+                return uniqueAccounts;
             })
             .addParser((parameterKey, reader, context) -> {
                 String identifier = reader.parseString();
                 CraftEcoService service = CraftEcoService.instance;
-                return service.searchAccountByIdentifier(identifier);
+                if (identifier.endsWith("[virtual]")){
+                    return service.streamVirtualAccounts()
+                            .filter(acc -> acc.identifier().equalsIgnoreCase(identifier.replace("[virtual]", "")))
+                            .findFirst();
+                }
+                return service.streamUniqueAccounts()
+                        .filter(acc -> acc.identifier().equalsIgnoreCase(identifier))
+                        .findFirst();
             })
             .optional()
             .build();
@@ -49,7 +80,7 @@ public class EcoParameters {
                     .collect(Collectors.toList()))
             .addParser((parameterKey, reader, context) -> {
                 String name = reader.parseString();
-                return CraftEcoService.instance.getCurrency(name);
+                return CraftEcoService.instance.currency(name);
             })
             .optional()
             .build();

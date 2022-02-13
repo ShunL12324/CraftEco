@@ -119,7 +119,7 @@ public class DatabaseHandler {
         }
     }
     
-    public List<CraftAccount> getAllAccount() {
+    public List<CraftAccount> allAccounts() {
         List<CraftAccount> craftAccounts = new ArrayList<>();
         String GET_ALL_ACCOUNT = "SELECT `data` FROM " + config.tableName;
         try (

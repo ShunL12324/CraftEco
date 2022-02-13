@@ -4,6 +4,7 @@ import com.github.ericliucn.crafteco.Main;
 import com.github.ericliucn.crafteco.eco.CraftEcoService;
 import net.kyori.adventure.audience.Audience;
 import org.spongepowered.api.Sponge;
+import org.spongepowered.api.entity.living.player.server.ServerPlayer;
 import org.spongepowered.api.event.Listener;
 import org.spongepowered.api.event.Order;
 import org.spongepowered.api.event.economy.EconomyTransactionEvent;
@@ -20,9 +21,9 @@ public class EventHandler {
         Sponge.eventManager().registerListeners(Main.instance.getContainer(), this);
     }
 
-    @Listener(order = Order.PRE, beforeModifications = true)
-    public void onJoin(final ServerSideConnectionEvent.Auth event){
-        CraftEcoService.instance.createUniqueAccountWithIdentifier(event.profile().uniqueId(), event.profile().name().get());
+    @Listener
+    public void onPlayerJoin(ServerSideConnectionEvent.Join event, @First ServerPlayer player){
+        CraftEcoService.instance.findOrCreateAccount(player.uniqueId());
     }
 
 }

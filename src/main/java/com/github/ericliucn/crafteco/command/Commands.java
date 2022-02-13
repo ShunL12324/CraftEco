@@ -17,6 +17,7 @@ import org.spongepowered.api.SystemSubject;
 import org.spongepowered.api.command.Command;
 import org.spongepowered.api.command.CommandResult;
 import org.spongepowered.api.command.parameter.Parameter;
+import org.spongepowered.api.data.Keys;
 import org.spongepowered.api.entity.living.player.User;
 import org.spongepowered.api.entity.living.player.server.ServerPlayer;
 import org.spongepowered.api.event.Cause;
@@ -178,6 +179,30 @@ public class Commands {
                 })
                 .build();
 
+        final Command.Parameterized balTop = Command.builder()
+                .permission("crafteco.command.balancetop")
+                .addParameter(EcoParameters.CURRENCY_PARA)
+                .executor(context -> {
+                    CraftEcoService service = CraftEcoService.instance;
+                    Currency currency = context.one(EcoParameters.CURRENCY_PARA_KEY).orElse(service.defaultCurrency());
+                    List<Component> components = new ArrayList<>();
+                    CraftEcoService.instance.streamUniqueAccounts()
+                            .sorted((o1, o2) -> - o1.balance(currency).compareTo(o2.balance(currency)))
+                            .forEach(acc -> {
+                                String line = "&d" + acc.identifier() + "&e: " + "&4" + Util.toPlain(currency.symbol())
+                                        + " &6" + acc.balance(currency).toString();
+                                components.add(Util.toComponent(line));
+                            });
+                    PaginationList.builder()
+                            .contents(components)
+                            .title(Util.toComponent("&6Balance Top"))
+                            .padding(Util.toComponent("&a="))
+                            .build()
+                            .sendTo((Audience) context.cause().root());
+                    return CommandResult.success();
+                })
+                .build();
+
 
         final Command.Parameterized ecoSet = Command.builder()
                 .permission("crafteco.command.eco.set")
@@ -193,14 +218,18 @@ public class Commands {
                     if (context.cause().root() instanceof Audience){
                         Audience audience = ((Audience) context.cause().root());
                         if (result.result().equals(ResultType.SUCCESS)){
-                            audience.sendMessage(
-                                    PapiHandler.message(
-                                            messages.eco_set_success,
-                                            result,
-                                            Sponge.server().player(account.identifier()).orElse(null),
-                                            Util.toPlain(result.currency().displayName())
-                                    )
-                            );
+                            try {
+                                audience.sendMessage(
+                                        PapiHandler.message(
+                                                messages.eco_set_success,
+                                                result,
+                                                Sponge.server().userManager().load(account.identifier()).get().orElse(null),
+                                                Util.toPlain(result.currency().displayName())
+                                        )
+                                );
+                            } catch (InterruptedException | ExecutionException e) {
+                                e.printStackTrace();
+                            }
                         }else {
                             audience.sendMessage(
                                     PapiHandler.message(
@@ -241,6 +270,7 @@ public class Commands {
         event.register(Main.instance.getContainer(), pay, "pay");
         event.register(Main.instance.getContainer(), adminPay, "adminpay");
         event.register(Main.instance.getContainer(), bal, "bal", "balance");
+        event.register(Main.instance.getContainer(), balTop, "baltop", "balancetop");
         event.register(Main.instance.getContainer(), ecoBase, "eco");
     }
 

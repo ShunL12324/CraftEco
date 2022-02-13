@@ -6,9 +6,6 @@ import com.github.ericliucn.crafteco.utils.Util;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextReplacementConfig;
 import org.jetbrains.annotations.Nullable;
-import org.spongepowered.api.Sponge;
-import org.spongepowered.api.entity.living.player.User;
-import org.spongepowered.api.entity.living.player.server.ServerPlayer;
 import org.spongepowered.api.placeholder.PlaceholderComponent;
 import org.spongepowered.api.placeholder.PlaceholderContext;
 import org.spongepowered.api.placeholder.PlaceholderParser;
@@ -20,9 +17,7 @@ import org.spongepowered.api.util.Identifiable;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
 
 public class PapiHandler {
 
@@ -35,7 +30,7 @@ public class PapiHandler {
                     CraftEcoService service = CraftEcoService.instance;
                     if (service.hasAccount(uuid)) {
                         Account account = service.findOrCreateAccount(uuid).get();
-                        Currency currency = service.getCurrency(arg).orElse(service.defaultCurrency());
+                        Currency currency = service.currency(arg).orElse(service.defaultCurrency());
                         return Util.toComponent(account.balance(currency).toString());
                     }
                 }

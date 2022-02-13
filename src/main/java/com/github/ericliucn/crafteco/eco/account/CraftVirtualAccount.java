@@ -6,8 +6,8 @@ import java.util.UUID;
 
 public class CraftVirtualAccount extends CraftAccount implements VirtualAccount {
 
-    public CraftVirtualAccount(String name, UUID uniqueID) {
-        super(uniqueID, name);
+    public CraftVirtualAccount(String identifier, UUID uniqueID) {
+        super(identifier, uniqueID);
         this.isVirtual = true;
     }
 
